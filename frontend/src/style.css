@@ -185,6 +185,16 @@ button, a, input, textarea, select, [role="tab"] {
   transform: translateY(6px);
 }
 
+/* Squelette : bloc gris animé affiché à la place d'un contenu en cours de chargement. */
+.squelette {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--border) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: balayage 1.4s infinite linear;
+}
+@keyframes balayage {
+  to { background-position: -200% 0; }
+}
+
 /* Changement de thème ou d'accent : fondu de toute la page (voir enFondu dans apparence.js). */
 ::view-transition-old(root), ::view-transition-new(root) {
   animation-duration: 0.25s;
@@ -195,5 +205,9 @@ button, a, input, textarea, select, [role="tab"] {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+  /* Le squelette tourne en boucle : on l'arrête complètement, il reste un bloc gris fixe. */
+  .squelette {
+    animation: none;
   }
 }

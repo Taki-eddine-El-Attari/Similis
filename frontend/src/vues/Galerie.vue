@@ -40,7 +40,9 @@ const champFichiers = ref(null)
 // --- Arbre des catégories ---
 
 const fermees = ref([]) // ids des catégories repliées dans l'arbre ; par défaut tout est ouvert
-const nbSansCategorie = ref(0)
+const nbSansCategorie = ref(null) // null : pas encore connu
+const chargement = ref(true) // la catégorie affichée est en cours de lecture : on montre des squelettes
+const chargees = ref([]) // ids des images dont le fichier est arrivé dans le navigateur
 
 // Transforme la liste à plat en liste ordonnée : chaque catégorie est suivie de ses enfants,
 // avec son niveau de profondeur (0 pour une racine) et « parente » si elle a des enfants.
@@ -124,11 +126,18 @@ function actualiser() {
     nbSansCategorie.value = (sansCategorie || listeImages).length
     // On ne garde cochées que les images encore affichées.
     selection.value = selection.value.filter((id) => listeImages.some((image) => image.id === id))
-  })
+  }).finally(() => (chargement.value = false))
 }
+
+// Nombre de squelettes : le nombre d'images attendu s'il est connu, sinon 10 ; 20 au plus.
+const nbSquelettes = computed(() => {
+  const attendu = courante.value === null ? nbSansCategorie.value : categorie.value?.nb_images
+  return Math.min(attendu ?? 10, 20)
+})
 
 function ouvrir(id) {
   nouveauNom.value = null
+  chargement.value = true
   courante.value = id
   selection.value = []
   message.value = ''
@@ -400,10 +409,15 @@ async function confirmer() {
         <p v-if="erreur" role="alert" class="text-sm text-destructive">{{ erreur }}</p>
       </Transition>
 
-      <!-- Zone de dépôt : visible quand la catégorie est vide ou quand on glisse des fichiers -->
-      <Transition name="fondu">
+      <!-- Un seul de ces trois blocs à la fois : rien ne se décale pendant le chargement.
+           1. Squelettes tant que la catégorie n'est pas lue -->
+      <ul v-if="chargement" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" aria-busy="true" aria-label="Chargement des images">
+        <li v-for="n in nbSquelettes" :key="n" class="squelette aspect-square rounded-lg" />
+      </ul>
+
+      <!-- 2. Zone de dépôt quand la catégorie est vide -->
       <button
-        v-if="!images.length || survol"
+        v-else-if="!images.length"
         type="button"
         class="grid min-h-[60vh] place-items-center content-center gap-1 rounded-xl border border-dashed px-6 py-12 text-center text-sm text-muted-foreground hover:border-primary hover:text-foreground"
         :class="{ 'border-primary bg-primary-soft text-foreground': survol }"
@@ -415,13 +429,14 @@ async function confirmer() {
         </span>
         <span>JPG ou PNG, 10 Mo maximum par fichier</span>
       </button>
-      </Transition>
 
+      <!-- 3. Grille des images ; un contour en pointillés quand on glisse des fichiers au-dessus -->
       <TransitionGroup
-        v-if="images.length"
+        v-else
         tag="ul"
         name="grille"
-        class="relative grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
+        class="relative grid grid-cols-2 gap-3 rounded-xl outline-2 outline-offset-8 outline-transparent outline-dashed sm:grid-cols-3 xl:grid-cols-5"
+        :class="{ '!outline-primary': survol }"
         :aria-busy="occupe"
       >
         <li v-for="image in images" :key="image.id" class="relative">
@@ -436,9 +451,20 @@ async function confirmer() {
           </RouterLink>
           <label
             class="vignette relative block aspect-square cursor-pointer overflow-hidden rounded-lg border bg-muted outline-2 outline-offset-2 outline-transparent"
+            :class="{ squelette: !chargees.includes(image.id) }"
           >
             <!-- ponytail: la vignette est le fichier complet ; créer des miniatures si la grille devient lente -->
-            <img :src="urlFichier(image.id)" :alt="image.nom" loading="lazy" draggable="false" class="size-full object-cover" />
+            <!-- Tant que le fichier n'est pas arrivé, l'image est transparente et laisse voir le squelette -->
+            <img
+              :src="urlFichier(image.id)"
+              :alt="image.nom"
+              loading="lazy"
+              draggable="false"
+              class="size-full object-cover transition-opacity duration-300"
+              :class="chargees.includes(image.id) ? 'opacity-100' : 'opacity-0'"
+              @load="chargees.push(image.id)"
+              @error="chargees.push(image.id)"
+            />
             <input v-model="selection" type="checkbox" class="peer sr-only" :value="image.id" :aria-label="'Sélectionner ' + image.nom" />
             <span
               class="absolute top-1.5 left-1.5 grid size-5 place-items-center rounded-md border-[1.5px] border-white bg-black/25 text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50"
