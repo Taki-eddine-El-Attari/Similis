@@ -170,6 +170,26 @@ button, a, input, textarea, select, [role="tab"] {
   transition-timing-function: ease;
 }
 
+/* Transitions Vue communes : <Transition name="fondu"> pour un élément qui apparaît ou disparaît,
+   <Transition name="page"> pour le passage d'une page à l'autre. */
+.fondu-enter-active, .fondu-leave-active,
+.page-enter-active, .page-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fondu-enter-from, .fondu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.page-enter-from, .page-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* Changement de thème ou d'accent : fondu de toute la page (voir enFondu dans apparence.js). */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 0.25s;
+}
+
 /* Respecte le réglage « réduire les animations » du système. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

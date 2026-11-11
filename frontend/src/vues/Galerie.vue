@@ -1,8 +1,8 @@
 <script setup>
 // Galerie : arbre des catégories à gauche, images de la catégorie choisie à droite.
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { AnimateIcon } from '@animate-ui/vue/icons'
-import { FolderPlus } from '@lucide/vue'
+import { ChevronRight, FolderPlus } from '@lucide/vue'
 import {
   chargerImages, creerCategorie, deplacerImage, listerCategories, listerImages,
   renommerCategorie, supprimerCategorie, supprimerImages, urlFichier, zipImages,
@@ -34,25 +34,61 @@ const champFichiers = ref(null)
 
 // --- Arbre des catégories ---
 
+const fermees = ref([]) // ids des catégories repliées dans l'arbre ; par défaut tout est ouvert
+const nbSansCategorie = ref(0)
+
 // Transforme la liste à plat en liste ordonnée : chaque catégorie est suivie de ses enfants,
-// avec son niveau de profondeur (0 pour une racine). Sert à l'arbre et au menu « Déplacer ».
-function descendants(parentId, niveau) {
+// avec son niveau de profondeur (0 pour une racine) et « parente » si elle a des enfants.
+// replier = true : les enfants d'une catégorie repliée sont laissés de côté.
+function descendants(parentId, niveau, replier) {
   return categories.value
     .filter((c) => c.parent_id === parentId)
-    .flatMap((c) => [{ ...c, niveau }, ...descendants(c.id, niveau + 1)])
+    .flatMap((c) => {
+      const enfants = replier && fermees.value.includes(c.id) ? [] : descendants(c.id, niveau + 1, replier)
+      return [{ ...c, niveau, parente: categories.value.some((e) => e.parent_id === c.id) }, ...enfants]
+    })
 }
-const arbre = computed(() => descendants(null, 0))
+const arbre = computed(() => descendants(null, 0, true)) // lignes visibles de l'arbre
+const toutes = computed(() => descendants(null, 0, false)) // menu « Déplacer vers »
+
+// Replie ou déplie une catégorie de l'arbre.
+function basculer(id) {
+  fermees.value = fermees.value.includes(id) ? fermees.value.filter((f) => f !== id) : [...fermees.value, id]
+}
 
 const categorie = computed(() => categories.value.find((c) => c.id === courante.value) || null)
 
-// Chemin de la catégorie affichée, de la racine jusqu'à elle : « Voyages / Maroc ».
+// Chemin de la catégorie affichée, de la racine jusqu'à elle : [Voyages, Maroc].
 const chemin = computed(() => {
-  const noms = []
+  const etapes = []
   for (let c = categorie.value; c; c = categories.value.find((p) => p.id === c.parent_id)) {
-    noms.unshift(c.nom)
+    etapes.unshift(c)
   }
-  return noms.join(' / ')
+  return etapes
 })
+
+// --- Renommer dans le titre ---
+
+const nouveauNom = ref(null) // null : titre normal ; texte : le titre est un champ de saisie
+const champNom = ref(null)
+
+async function renommer() {
+  nouveauNom.value = categorie.value.nom
+  await nextTick() // le champ n'existe qu'après le prochain affichage
+  champNom.value.select()
+}
+
+// Entrée ou clic ailleurs : enregistre. Échap : annule (nouveauNom repasse à null avant).
+async function validerNom() {
+  const nom = nouveauNom.value?.trim()
+  if (nouveauNom.value === null) return
+  nouveauNom.value = null
+  if (!nom || nom === categorie.value.nom) return
+  await executer(() => renommerCategorie(courante.value, nom))
+  const echec = erreur.value
+  await actualiser()
+  erreur.value = echec
+}
 
 // --- Chargement des données ---
 
@@ -72,15 +108,22 @@ async function executer(action) {
 // Relit les catégories et les images de la catégorie affichée.
 function actualiser() {
   return executer(async () => {
-    const [listeCategories, listeImages] = await Promise.all([listerCategories(), listerImages(courante.value)])
+    // Le nombre d'images sans catégorie n'est pas dans la liste des catégories : on le demande à part.
+    const [listeCategories, listeImages, sansCategorie] = await Promise.all([
+      listerCategories(),
+      listerImages(courante.value),
+      courante.value === null ? null : listerImages(null),
+    ])
     categories.value = listeCategories
     images.value = listeImages
+    nbSansCategorie.value = (sansCategorie || listeImages).length
     // On ne garde cochées que les images encore affichées.
     selection.value = selection.value.filter((id) => listeImages.some((image) => image.id === id))
   })
 }
 
 function ouvrir(id) {
+  nouveauNom.value = null
   courante.value = id
   selection.value = []
   message.value = ''
@@ -152,32 +195,34 @@ async function deplacer(evenement) {
 
 // --- Boîte de dialogue : créer, renommer, supprimer ---
 
-// null : fermée. Sinon { type, nom, erreur } avec type parmi :
-// 'creer' (parent = dialogue.parent), 'renommer', 'supprimer-categorie', 'supprimer-images'.
-const dialogue = ref(null)
+// dialogue : contenu de la boîte, { type, parent, nom, erreur, description } avec type parmi
+// 'creer' (parent = dialogue.parent), 'supprimer-categorie', 'supprimer-images'.
+// dialogueOuvert : boîte visible ou non. Les deux sont séparés pour que le contenu
+// reste affiché pendant l'animation de fermeture.
+const dialogue = ref({ type: 'creer', parent: null, nom: '', erreur: '', description: '' })
+const dialogueOuvert = ref(false)
 
 const TEXTES = {
   creer: { titre: 'Nouvelle catégorie', bouton: 'Créer' },
-  renommer: { titre: 'Renommer la catégorie', bouton: 'Renommer' },
   'supprimer-categorie': { titre: 'Supprimer la catégorie', bouton: 'Supprimer' },
   'supprimer-images': { titre: 'Supprimer les images', bouton: 'Supprimer' },
 }
 
 function demander(type, parent = null) {
-  dialogue.value = { type, parent, nom: type === 'renommer' ? categorie.value.nom : '', erreur: '' }
+  dialogue.value = { type, parent, nom: '', erreur: '', description: decrire(type, parent) }
+  dialogueOuvert.value = true
 }
 
-const description = computed(() => {
-  const d = dialogue.value
-  if (d?.type === 'creer') {
-    const parent = categories.value.find((c) => c.id === d.parent)
-    return parent ? `Elle sera créée dans « ${parent.nom} ».` : 'Elle sera créée à la racine.'
+// Phrase d'explication de la boîte. Calculée à l'ouverture : elle ne change pas pendant la fermeture.
+function decrire(type, parent) {
+  if (type === 'creer') {
+    const nom = categories.value.find((c) => c.id === parent)?.nom
+    return nom ? `Elle sera créée dans « ${nom} ».` : 'Elle sera créée à la racine.'
   }
-  if (d?.type === 'renommer') return `Nom actuel : « ${categorie.value?.nom} ».`
-  if (d?.type === 'supprimer-categorie') return `« ${categorie.value?.nom} » sera supprimée. Elle doit être vide.`
+  if (type === 'supprimer-categorie') return `« ${categorie.value.nom} » sera supprimée. Elle doit être vide.`
   const n = selection.value.length
   return (n === 1 ? 'Cette image sera supprimée' : `Ces ${n} images seront supprimées`) + ' définitivement.'
-})
+}
 
 async function confirmer() {
   const d = dialogue.value
@@ -186,8 +231,8 @@ async function confirmer() {
   try {
     if (d.type === 'creer') {
       await creerCategorie(d.nom, d.parent)
-    } else if (d.type === 'renommer') {
-      await renommerCategorie(courante.value, d.nom)
+      // La catégorie parente est dépliée, pour que la nouvelle soit visible.
+      fermees.value = fermees.value.filter((f) => f !== d.parent)
     } else if (d.type === 'supprimer-categorie') {
       const parent = categorie.value.parent_id
       await supprimerCategorie(courante.value)
@@ -195,7 +240,7 @@ async function confirmer() {
     } else {
       await supprimerImages(selection.value)
     }
-    dialogue.value = null
+    dialogueOuvert.value = false
     await actualiser()
   } catch (e) {
     d.erreur = e.message // l'erreur reste affichée dans la boîte
@@ -222,25 +267,43 @@ async function confirmer() {
           </Button>
         </AnimateIcon>
       </div>
-      <ul class="grid gap-0.5">
-        <li>
+      <!-- Lignes serrées, comme un explorateur de fichiers : flèche pour replier, puis le nom -->
+      <TransitionGroup tag="ul" name="branche">
+        <li key="sans">
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            :class="{ 'bg-accent font-medium !text-accent-foreground': courante === null }"
+            class="ligne flex w-full items-center gap-1.5 rounded-md py-1 pr-2 pl-7 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            :class="{ active: courante === null }"
             :aria-current="courante === null ? 'true' : undefined"
             @click="ouvrir(null)"
           >
-            Sans catégorie
+            <span class="min-w-0 flex-1 truncate">Sans catégorie</span>
+            <span v-if="nbSansCategorie" class="font-mono text-xs text-muted-foreground">{{ nbSansCategorie }}</span>
           </button>
         </li>
-        <li v-for="c in arbre" :key="c.id">
+        <li
+          v-for="c in arbre"
+          :key="c.id"
+          class="ligne flex items-center rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          :class="{ active: courante === c.id }"
+          :style="{ paddingLeft: 0.25 + c.niveau * 0.75 + 'rem' }"
+        >
+          <!-- La flèche n'existe que si la catégorie a des sous-catégories ; sinon un espace de même largeur -->
+          <button
+            v-if="c.parente"
+            type="button"
+            class="grid size-5 shrink-0 place-items-center rounded hover:bg-foreground/10"
+            :aria-expanded="!fermees.includes(c.id)"
+            :aria-label="(fermees.includes(c.id) ? 'Déplier ' : 'Replier ') + c.nom"
+            @click="basculer(c.id)"
+          >
+            <ChevronRight class="size-3.5 transition-transform duration-200" :class="{ 'rotate-90': !fermees.includes(c.id) }" />
+          </button>
+          <span v-else class="size-5 shrink-0" />
           <AnimateIcon animate-on-hover as-child>
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-md py-1.5 pr-2 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              :class="{ 'bg-accent font-medium !text-accent-foreground': courante === c.id }"
-              :style="{ paddingLeft: 0.5 + c.niveau * 0.9 + 'rem' }"
+              class="flex min-w-0 flex-1 items-center gap-1.5 py-1 pr-2 pl-0.5 text-left"
               :aria-current="courante === c.id ? 'true' : undefined"
               @click="ouvrir(c.id)"
             >
@@ -250,15 +313,39 @@ async function confirmer() {
             </button>
           </AnimateIcon>
         </li>
-      </ul>
+      </TransitionGroup>
     </nav>
 
     <!-- Images de la catégorie affichée -->
     <div class="grid min-w-0 gap-4">
       <header class="flex flex-wrap items-end gap-2">
         <div class="mr-auto min-w-0">
-          <p class="truncate text-sm text-muted-foreground">Galerie{{ chemin && ' / ' + chemin }}</p>
-          <h1 class="truncate text-2xl font-semibold tracking-tight">{{ categorie?.nom || 'Sans catégorie' }}</h1>
+          <!-- Chemin : chaque étape est un lien, sauf la catégorie affichée -->
+          <nav class="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground" aria-label="Chemin">
+            <button type="button" class="rounded hover:text-foreground hover:underline" @click="ouvrir(null)">Galerie</button>
+            <template v-for="etape in chemin" :key="etape.id">
+              <span aria-hidden="true">/</span>
+              <span v-if="etape.id === courante" aria-current="page">{{ etape.nom }}</span>
+              <button v-else type="button" class="rounded hover:text-foreground hover:underline" @click="ouvrir(etape.id)">
+                {{ etape.nom }}
+              </button>
+            </template>
+          </nav>
+          <!-- Renommer : le titre devient un champ. Entrée ou clic ailleurs enregistre, Échap annule. -->
+          <input
+            v-if="nouveauNom !== null"
+            ref="champNom"
+            v-model="nouveauNom"
+            class="-ml-1.5 w-full max-w-md rounded-md border bg-background px-1.5 text-2xl font-semibold tracking-tight outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            maxlength="50"
+            aria-label="Nouveau nom de la catégorie"
+            @keydown.enter="validerNom"
+            @keydown.esc="nouveauNom = null"
+            @blur="validerNom"
+          />
+          <h1 v-else class="truncate border border-transparent text-2xl font-semibold tracking-tight">
+            {{ categorie?.nom || 'Sans catégorie' }}
+          </h1>
         </div>
         <template v-if="categorie">
           <Button variant="outline" @click="demander('creer', courante)">
@@ -266,7 +353,7 @@ async function confirmer() {
             Sous-catégorie
           </Button>
           <AnimateIcon animate-on-hover as-child>
-            <Button variant="outline" @click="demander('renommer')">
+            <Button variant="outline" @click="renommer">
               <Pencil :size="16" />
               Renommer
             </Button>
@@ -294,14 +381,19 @@ async function confirmer() {
         />
       </header>
 
-      <p v-if="message" role="status" class="text-sm text-muted-foreground">{{ message }}</p>
-      <p v-if="erreur" role="alert" class="text-sm text-destructive">{{ erreur }}</p>
+      <Transition name="fondu">
+        <p v-if="message" role="status" class="text-sm text-muted-foreground">{{ message }}</p>
+      </Transition>
+      <Transition name="fondu">
+        <p v-if="erreur" role="alert" class="text-sm text-destructive">{{ erreur }}</p>
+      </Transition>
 
       <!-- Zone de dépôt : visible quand la catégorie est vide ou quand on glisse des fichiers -->
+      <Transition name="fondu">
       <button
         v-if="!images.length || survol"
         type="button"
-        class="grid place-items-center gap-1 rounded-xl border border-dashed px-6 py-12 text-center text-sm text-muted-foreground hover:border-primary hover:text-foreground"
+        class="grid min-h-[60vh] place-items-center content-center gap-1 rounded-xl border border-dashed px-6 py-12 text-center text-sm text-muted-foreground hover:border-primary hover:text-foreground"
         :class="{ 'border-primary bg-primary-soft text-foreground': survol }"
         @click="champFichiers.click()"
       >
@@ -311,12 +403,13 @@ async function confirmer() {
         </span>
         <span>JPG ou PNG, 10 Mo maximum par fichier</span>
       </button>
+      </Transition>
 
       <TransitionGroup
         v-if="images.length"
         tag="ul"
         name="grille"
-        class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
+        class="relative grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
         :aria-busy="occupe"
       >
         <li v-for="image in images" :key="image.id">
@@ -366,7 +459,7 @@ async function confirmer() {
           >
             <option disabled selected>Déplacer vers</option>
             <option value="">Sans catégorie</option>
-            <option v-for="c in arbre" :key="c.id" :value="c.id">{{ '  '.repeat(c.niveau) + c.nom }}</option>
+            <option v-for="c in toutes" :key="c.id" :value="c.id">{{ '  '.repeat(c.niveau) + c.nom }}</option>
           </select>
           <AnimateIcon animate-on-hover as-child>
             <Button variant="destructive" size="sm" :disabled="occupe" @click="demander('supprimer-images')">
@@ -384,20 +477,20 @@ async function confirmer() {
     </div>
 
     <!-- Une seule boîte de dialogue pour créer, renommer et confirmer une suppression -->
-    <Dialog :open="dialogue !== null" @update:open="dialogue = null">
-      <DialogContent v-if="dialogue" :show-close-button="false">
+    <Dialog v-model:open="dialogueOuvert">
+      <DialogContent :show-close-button="false">
         <form class="grid gap-4" @submit.prevent="confirmer">
           <DialogHeader>
             <DialogTitle>{{ TEXTES[dialogue.type].titre }}</DialogTitle>
-            <DialogDescription>{{ description }}</DialogDescription>
+            <DialogDescription>{{ dialogue.description }}</DialogDescription>
           </DialogHeader>
-          <div v-if="dialogue.type === 'creer' || dialogue.type === 'renommer'" class="grid gap-2">
+          <div v-if="dialogue.type === 'creer'" class="grid gap-2">
             <Label for="nom-categorie">Nom de la catégorie</Label>
             <Input id="nom-categorie" v-model.trim="dialogue.nom" required maxlength="50" autocomplete="off" />
           </div>
           <p v-if="dialogue.erreur" role="alert" class="text-sm text-destructive">{{ dialogue.erreur }}</p>
           <DialogFooter>
-            <Button type="button" variant="outline" @click="dialogue = null">Annuler</Button>
+            <Button type="button" variant="outline" @click="dialogueOuvert = false">Annuler</Button>
             <Button type="submit" :variant="dialogue.type.startsWith('supprimer') ? 'destructive' : 'default'" :disabled="occupe">
               {{ TEXTES[dialogue.type].bouton }}
             </Button>
@@ -414,17 +507,45 @@ async function confirmer() {
   outline-color: var(--primary);
 }
 
-/* Apparition et disparition des images de la grille, et de la barre d'actions. */
+/* Ligne de l'arbre correspondant à la catégorie affichée. */
+.ligne.active {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 500;
+}
+
+/* Arbre : une ligne qui apparaît ou disparaît (flèche, ajout, suppression) se déplie en hauteur. */
+.branche-enter-active,
+.branche-leave-active {
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+.branche-enter-from,
+.branche-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.branche-enter-to,
+.branche-leave-from {
+  max-height: 2rem; /* un peu plus que la hauteur d'une ligne */
+}
+
+/* Grille : une image qui arrive grossit légèrement ; quand une image part,
+   les autres glissent vers leur nouvelle place (classe -move de TransitionGroup). */
 .grille-enter-active,
-.grille-leave-active,
+.grille-move,
 .barre-enter-active,
 .barre-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.grille-enter-from,
-.grille-leave-to {
+.grille-enter-from {
   opacity: 0;
   transform: scale(0.96);
+}
+/* L'image qui part sort de la grille tout de suite, pour laisser sa place aux autres. */
+.grille-leave-active {
+  position: absolute;
+  opacity: 0;
 }
 .barre-enter-from,
 .barre-leave-to {

@@ -1,6 +1,7 @@
 """Images de la galerie : chargement, liste, déplacement, téléchargement, suppression."""
 
 import io
+import re
 import uuid
 import zipfile
 from pathlib import Path
@@ -20,8 +21,14 @@ COLONNES = "id, categorie_id, nom, largeur, hauteur, cree_le"
 
 
 def dossier():
-    """Dossier des fichiers de l'utilisateur connecté : data/uploads/<utilisateur_id>/."""
-    return Path(current_app.config["UPLOADS"]) / str(g.utilisateur["id"])
+    """Dossier des fichiers de l'utilisateur connecté : data/uploads/<nom>_<id>/, par exemple « amine_3 ».
+
+    Le nom rend le dossier reconnaissable. Il vient de l'utilisateur : tout caractère autre
+    qu'une lettre, un chiffre, « _ » ou « - » est remplacé, pour qu'il ne puisse pas servir
+    de chemin (« ../ »). L'id garantit que deux comptes n'ont jamais le même dossier.
+    """
+    nom = re.sub(r"[^\w-]", "_", g.utilisateur["nom"])
+    return Path(current_app.config["UPLOADS"]) / f"{nom}_{g.utilisateur['id']}"
 
 
 def trouver(id):

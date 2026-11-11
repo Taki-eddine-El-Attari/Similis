@@ -1,6 +1,6 @@
 <script setup>
 // Profil : compte connecté et réglages d'apparence (mémorisés dans ce navigateur).
-import { accent, theme } from '@/apparence'
+import { accent, enFondu, theme } from '@/apparence'
 import { utilisateur } from '@/session'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -41,7 +41,7 @@ const accents = [
       <CardContent class="grid gap-5">
         <div class="grid gap-2">
           <span id="titre-theme" class="text-sm font-medium">Thème</span>
-          <Tabs v-model="theme">
+          <Tabs :model-value="theme" @update:model-value="(v) => enFondu(() => (theme = v))">
             <TabsList aria-labelledby="titre-theme">
               <TabsTrigger v-for="t in themes" :key="t.valeur" :value="t.valeur" class="px-4">
                 {{ t.texte }}
@@ -51,7 +51,7 @@ const accents = [
         </div>
         <div class="grid gap-2">
           <span id="titre-accent" class="text-sm font-medium">Couleur d'accent</span>
-          <Tabs v-model="accent">
+          <Tabs :model-value="accent" @update:model-value="(v) => enFondu(() => (accent = v))">
             <TabsList aria-labelledby="titre-accent">
               <TabsTrigger v-for="a in accents" :key="a.valeur" :value="a.valeur" class="px-4">
                 <i class="size-3 rounded-full" :class="a.pastille" aria-hidden="true" />

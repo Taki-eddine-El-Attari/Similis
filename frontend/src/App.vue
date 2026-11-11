@@ -69,7 +69,12 @@ async function seDeconnecter() {
     </aside>
 
     <main class="min-w-0 flex-1 p-6 md:p-8">
-      <RouterView />
+      <!-- Changement de page : l'ancienne s'efface, puis la nouvelle apparaît -->
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
   </div>
 </template>

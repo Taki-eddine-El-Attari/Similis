@@ -74,8 +74,14 @@ def verifier():
         assert [r["nom"] for r in refusees] == ["notes.txt", "faux.jpg", "gros.png"]
         assert "fichier" not in creees[0]  # le nom sur le disque n'est pas exposé
         a, b, c = (i["id"] for i in creees)
-        fichiers = list((Path(dossier) / "uploads").rglob("*.*"))
-        assert len(fichiers) == 3
+        # Les fichiers sont rangés dans un dossier au nom du compte, suivi de son id
+        assert len(list((Path(dossier) / "uploads" / "Amine_1").glob("*.*"))) == 3
+        # Un nom de compte ne peut pas servir de chemin : ses caractères spéciaux sont remplacés
+        pirate = app.test_client()
+        pirate.post("/api/auth/inscription", json={"nom": "../../x", "mot_de_passe": "motdepasse3"})
+        assert envoyer(pirate, [("a.jpg", image())]).status_code == 201
+        assert len(list((Path(dossier) / "uploads" / "______x_3").glob("*.jpg"))) == 1
+        assert pirate.post("/api/images/suppression", json={"ids": [4]}).json == {"supprimees": 1}
         # Aucun fichier valide : 400 ; catégorie d'un autre : 404
         assert envoyer(amine, [("notes.txt", b"bonjour")]).status_code == 400
         assert envoyer(sara, [("a.jpg", image())], voyages).status_code == 404
