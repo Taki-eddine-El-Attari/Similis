@@ -167,6 +167,19 @@ EPSILON = 0.0001  # ε de la formule 4 : évite une division par zéro quand une
 GROUPES = {"histogrammes": (0, 96), "moments": (96, 105), "dominantes": (105, 125), "glcm": (125, 131), "lbp": (131, 141)}
 
 
+def retour_de_pertinence(pertinents):
+    """Méthode FRE. « pertinents » : les vecteurs normalisés de l'ensemble pertinent R, un par ligne.
+
+    Renvoie (nouvelle requête, poids). Sert à l'application et au script d'évaluation.
+    """
+    # Formule 4 : w_i = 1 / (ε + σ_i), σ_i étant l'écart-type de la composante i sur R.
+    # Une composante qui varie peu entre les images pertinentes compte beaucoup, et inversement.
+    # Si R ne contient qu'une image, tous les σ_i sont nuls : poids égaux, donc recherche simple.
+    poids = 1 / (EPSILON + pertinents.std(axis=0))
+    # Nouvelle requête (tableau 1 du papier) : la moyenne des vecteurs de R.
+    return pertinents.mean(axis=0), poids
+
+
 def chercher(affiner):
     """Code commun aux deux services de recherche.
 
@@ -207,13 +220,8 @@ def chercher(affiner):
     poids = None
     if affiner:
         # Ensemble pertinent R : la requête et les images cochées, chacune une seule fois.
-        pertinents = base[list(dict.fromkeys(positions))]
-        # Formule 4 : w_i = 1 / (ε + σ_i), σ_i étant l'écart-type de la composante i sur R.
-        # Une composante qui varie peu entre les images pertinentes compte beaucoup, et inversement.
-        # Si R ne contient que la requête, tous les σ_i sont nuls : poids égaux, donc recherche simple.
-        poids = 1 / (EPSILON + pertinents.std(axis=0))
-        # Nouvelle requête (tableau 1 du papier) : la moyenne des vecteurs de R.
-        d = distances(base, pertinents.mean(axis=0), poids)
+        nouvelle_requete, poids = retour_de_pertinence(base[list(dict.fromkeys(positions))])
+        d = distances(base, nouvelle_requete, poids)
     else:
         d = distances(base, base[requete])
 
