@@ -1,31 +1,73 @@
 <script setup>
-// Page d'une image : aperçu, téléchargement et transformations.
+// Page d'une image : aperçu, téléchargement, descripteurs et transformations.
 // Chaque transformation crée une nouvelle image ; on ouvre alors la page de cette nouvelle image.
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
 import { ArrowLeft, Contrast, Crop, FlipHorizontal2, FlipVertical2, RotateCw, Scaling } from '@lucide/vue'
-import { lireImage, transformerImage, urlFichier } from '@/api'
+import { lireDescripteurs, lireImage, transformerImage, urlFichier } from '@/api'
+import Barres from '@/composants/Barres.vue'
 import Download from '@/components/animate-ui/icons/Download.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const route = useRoute()
 const router = useRouter()
 
 const image = ref(null) // { id, categorie_id, nom, largeur, hauteur }
+const descripteurs = ref(null) // { histogrammes, moments, dominantes, glcm, lbp }
+const onglet = ref('descripteurs') // 'descripteurs' | 'transformations'
 const occupe = ref(false)
 const erreur = ref('')
 
 onMounted(async () => {
   try {
     image.value = await lireImage(route.params.id)
+    // Le service accepte plusieurs images ; ici on n'en demande qu'une.
+    const reponse = await lireDescripteurs([{ source: 'galerie', id: image.value.id }])
+    descripteurs.value = reponse[0]
   } catch (e) {
     erreur.value = e.message
   }
 })
+
+// --- Affichage des descripteurs (valeurs brutes, non normalisées) ---
+
+// Histogrammes de couleur : un graphique par canal, avec la couleur du canal.
+const CANAUX = [
+  { cle: 'r', nom: 'Rouge', couleur: '--canal-r' },
+  { cle: 'g', nom: 'Vert', couleur: '--canal-g' },
+  { cle: 'b', nom: 'Bleu', couleur: '--canal-b' },
+]
+// 32 cases de 8 niveaux chacune : « 0 à 7 », « 8 à 15 », ... « 248 à 255 ».
+const CASES = Array.from({ length: 32 }, (_, i) => `${i * 8} à ${i * 8 + 7}`)
+const MOTIFS = Array.from({ length: 10 }, (_, i) => 'Motif ' + i)
+const MOMENTS = [
+  { cle: 'h', nom: 'Teinte (H)' },
+  { cle: 's', nom: 'Saturation (S)' },
+  { cle: 'v', nom: 'Valeur (V)' },
+]
+const GLCM = [
+  { cle: 'contraste', nom: 'Contraste' },
+  { cle: 'correlation', nom: 'Corrélation' },
+  { cle: 'energie', nom: 'Énergie' },
+  { cle: 'homogeneite', nom: 'Homogénéité' },
+  { cle: 'dissimilarite', nom: 'Dissimilarité' },
+  { cle: 'asm', nom: 'ASM' },
+]
+
+// Nombre à 4 décimales, écrit à la française : 0,9412.
+function nombre(valeur) {
+  return valeur.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+}
+
+// Couleur CSS d'une couleur dominante (ses composantes sont entre 0 et 1).
+function couleurCss(c) {
+  return `rgb(${c.r * 255} ${c.g * 255} ${c.b * 255})`
+}
 
 // Lien de retour : la galerie, ouverte sur la catégorie de l'image.
 const retour = computed(() => ({
@@ -141,7 +183,7 @@ async function transformer(type, parametres) {
       <p v-if="erreur" role="alert" class="text-sm text-destructive">{{ erreur }}</p>
     </Transition>
 
-    <div v-if="image" class="grid gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
+    <div v-if="image" class="grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
       <!-- Aperçu : on trace la zone de recadrage directement sur l'image -->
       <div class="grid justify-items-start gap-2">
         <div
@@ -169,8 +211,115 @@ async function transformer(type, parametres) {
         <p class="font-mono text-xs text-muted-foreground">{{ image.largeur }} × {{ image.hauteur }} pixels</p>
       </div>
 
-      <!-- Panneau des transformations -->
-      <Card>
+      <!-- Colonne de droite : deux onglets -->
+      <div class="grid min-w-0 gap-4">
+      <Tabs v-model="onglet">
+        <TabsList class="w-full">
+          <TabsTrigger value="descripteurs">Descripteurs</TabsTrigger>
+          <TabsTrigger value="transformations">Transformations</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <!-- Onglet Descripteurs -->
+      <div v-if="onglet === 'descripteurs'" class="grid gap-4">
+        <p v-if="!descripteurs && !erreur" class="text-sm text-muted-foreground">Calcul des descripteurs en cours</p>
+        <template v-if="descripteurs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histogrammes de couleur</CardTitle>
+              <CardDescription>Part des pixels par niveau, de 0 (sombre) à 255 (clair), en 32 cases.</CardDescription>
+            </CardHeader>
+            <CardContent class="grid gap-3">
+              <div v-for="canal in CANAUX" :key="canal.cle">
+                <span class="text-xs text-muted-foreground">{{ canal.nom }}</span>
+                <Barres
+                  :valeurs="descripteurs.histogrammes[canal.cle]"
+                  :etiquettes="CASES"
+                  :couleur="canal.couleur"
+                  :description="'Histogramme du canal ' + canal.nom"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Couleurs dominantes</CardTitle>
+              <CardDescription>Les 5 couleurs les plus présentes (k-means).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul class="flex flex-wrap gap-3">
+                <li v-for="(c, i) in descripteurs.dominantes" :key="i" class="grid justify-items-center gap-1">
+                  <span class="size-10 rounded-lg border" :style="{ background: couleurCss(c) }" />
+                  <span class="font-mono text-xs">{{ Math.round(c.proportion * 100) }} %</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Moments de couleur</CardTitle>
+              <CardDescription>En HSV, chaque canal ramené entre 0 et 1.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="border-b text-muted-foreground">
+                    <th class="py-1.5 text-left font-medium">Canal</th>
+                    <th class="py-1.5 text-right font-medium">Moyenne</th>
+                    <th class="py-1.5 text-right font-medium">Écart-type</th>
+                    <th class="py-1.5 text-right font-medium">Asymétrie</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="canal in MOMENTS" :key="canal.cle" class="border-b last:border-0">
+                    <th class="py-1.5 text-left font-medium">{{ canal.nom }}</th>
+                    <td v-for="(valeur, i) in descripteurs.moments[canal.cle]" :key="i" class="py-1.5 text-right font-mono">
+                      {{ nombre(valeur) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Texture (GLCM)</CardTitle>
+              <CardDescription>Moyenne des 4 directions, à 1 pixel de distance.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <table class="w-full text-xs">
+                <tbody>
+                  <tr v-for="propriete in GLCM" :key="propriete.cle" class="border-b last:border-0">
+                    <th class="py-1.5 text-left font-medium text-muted-foreground">{{ propriete.nom }}</th>
+                    <td class="py-1.5 text-right font-mono">{{ nombre(descripteurs.glcm[propriete.cle]) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Texture (LBP)</CardTitle>
+              <CardDescription>Part des pixels pour chacun des 10 motifs uniformes.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Barres
+                :valeurs="descripteurs.lbp"
+                :etiquettes="MOTIFS"
+                couleur="--chart-5"
+                description="Histogramme des motifs LBP"
+              />
+            </CardContent>
+          </Card>
+        </template>
+      </div>
+
+      <!-- Onglet Transformations -->
+      <Card v-else>
         <CardHeader>
           <CardTitle>Transformations</CardTitle>
           <CardDescription>Chacune crée une nouvelle image. L'originale est conservée.</CardDescription>
@@ -250,6 +399,7 @@ async function transformer(type, parametres) {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   </section>
 </template>

@@ -85,6 +85,12 @@ export function transformerImage(id, type, parametres = {}) {
   return appeler('POST', `/images/${id}/transformations`, { type, ...parametres })
 }
 
+// POST /api/descripteurs — descripteurs d'une ou plusieurs images
+// images : liste de { source: 'galerie', id } ; renvoie une entrée par image
+export function lireDescripteurs(images) {
+  return appeler('POST', '/descripteurs', { images })
+}
+
 // POST /api/images — charge des fichiers ; renvoie { creees, refusees }
 export function chargerImages(fichiers, categorieId) {
   const formulaire = new FormData()

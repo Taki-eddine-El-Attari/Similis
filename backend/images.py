@@ -13,6 +13,7 @@ from flask_restful import Resource
 from werkzeug.exceptions import RequestEntityTooLarge
 
 import categories
+import descripteurs
 from db import connexion
 
 EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -89,12 +90,29 @@ def ajouter(nom, contenu, pixels, categorie_id):
     dossier().mkdir(parents=True, exist_ok=True)
     (dossier() / sur_disque).write_bytes(contenu)
     db = connexion()
+    # Les descripteurs sont calculés maintenant et rangés en base : la recherche n'a jamais à relire le fichier.
     curseur = db.execute(
-        "INSERT INTO images (utilisateur_id, categorie_id, nom, fichier, largeur, hauteur) VALUES (?, ?, ?, ?, ?, ?)",
-        (g.utilisateur["id"], categorie_id, nom, sur_disque, largeur, hauteur),
+        """INSERT INTO images (utilisateur_id, categorie_id, nom, fichier, largeur, hauteur, descripteurs)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (g.utilisateur["id"], categorie_id, nom, sur_disque, largeur, hauteur, descripteurs.calculer(pixels).tobytes()),
     )
     db.commit()
     return publique(trouver(curseur.lastrowid))
+
+
+def vecteur(image):
+    """Renvoie les 141 descripteurs d'une image de la galerie (tableau float32), lus en base.
+
+    Une image chargée avant l'étape 5 n'en a pas encore : ils sont calculés depuis son fichier, puis rangés.
+    """
+    octets = connexion().execute("SELECT descripteurs FROM images WHERE id = ?", (image["id"],)).fetchone()[0]
+    if octets is None:
+        # np.fromfile puis imdecode : cv2.imread échoue sous Windows si le chemin contient un accent.
+        pixels = cv2.imdecode(np.fromfile(dossier() / image["fichier"], np.uint8), cv2.IMREAD_COLOR)
+        octets = descripteurs.calculer(pixels).tobytes()
+        connexion().execute("UPDATE images SET descripteurs = ? WHERE id = ?", (octets, image["id"]))
+        connexion().commit()
+    return np.frombuffer(octets, np.float32)
 
 
 class Images(Resource):
@@ -198,6 +216,26 @@ class Zip(Resource):
                 archive.write(dossier() / image["fichier"], nom)
         tampon.seek(0)
         return send_file(tampon, mimetype="application/zip", as_attachment=True, download_name="similis.zip")
+
+
+class Descripteurs(Resource):
+    def post(self):
+        """POST /api/descripteurs — descripteurs d'une ou plusieurs images : {images: [{source, id}, ...]}."""
+        demandees = categories.corps_json().get("images")
+        if not isinstance(demandees, list) or not 1 <= len(demandees) <= 100:
+            return {"erreur": "« images » doit être une liste de 1 à 100 images."}, 400
+        reponse = []
+        for demandee in demandees:
+            if not isinstance(demandee, dict) or not categories.est_entier(demandee.get("id")):
+                return {"erreur": "Chaque image s'écrit {\"source\": \"galerie\", \"id\": 12}."}, 400
+            # Les images GHIM-10K s'ajouteront ici avec leur index, à l'étape 6.
+            if demandee.get("source") != "galerie":
+                return {"erreur": "Source inconnue. Source acceptée : galerie."}, 400
+            image = trouver(demandee["id"])
+            if image is None:
+                return {"erreur": f"Image {demandee['id']} introuvable."}, 404
+            reponse.append({"source": "galerie", "id": image["id"], **descripteurs.detailler(vecteur(image))})
+        return reponse
 
 
 class Suppression(Resource):

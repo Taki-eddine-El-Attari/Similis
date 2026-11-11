@@ -16,7 +16,90 @@ tags:
     description: Images de la galerie. L'image d'un autre utilisateur répond 404.
   - name: Transformations
     description: Chaque transformation crée une nouvelle image avec ses propres dimensions.
+  - name: Descripteurs
+    description: Vecteur de 141 valeurs par image (couleur et texture), calculé au chargement.
 definitions:
+  Descripteurs:
+    type: object
+    properties:
+      source:
+        type: string
+        example: galerie
+      id:
+        type: integer
+        example: 7
+      histogrammes:
+        type: object
+        description: R, G, B, 32 cases chacun, en fréquences (somme 1)
+        properties:
+          r:
+            type: array
+            items:
+              type: number
+          g:
+            type: array
+            items:
+              type: number
+          b:
+            type: array
+            items:
+              type: number
+      moments:
+        type: object
+        description: En HSV, canaux entre 0 et 1. Pour chaque canal, moyenne, écart-type, asymétrie.
+        properties:
+          h:
+            type: array
+            items:
+              type: number
+            example: [0.52, 0.21, -0.08]
+          s:
+            type: array
+            items:
+              type: number
+          v:
+            type: array
+            items:
+              type: number
+      dominantes:
+        type: array
+        description: 5 couleurs (k-means), de la plus présente à la moins présente
+        items:
+          type: object
+          properties:
+            r:
+              type: number
+              example: 0.12
+            g:
+              type: number
+              example: 0.45
+            b:
+              type: number
+              example: 0.8
+            proportion:
+              type: number
+              example: 0.37
+      glcm:
+        type: object
+        description: Moyenne des directions 0, 45, 90 et 135 degrés, distance 1
+        properties:
+          contraste:
+            type: number
+          correlation:
+            type: number
+          energie:
+            type: number
+          homogeneite:
+            type: number
+          dissimilarite:
+            type: number
+          asm:
+            type: number
+      lbp:
+        type: array
+        description: Histogramme des 10 motifs uniformes (8 voisins, rayon 1), en fréquences
+        items:
+          type: number
   Categorie:
     type: object
     properties:
@@ -473,6 +556,46 @@ paths:
             $ref: "#/definitions/Image"
         400:
           description: Type inconnu ou paramètre invalide
+          schema:
+            $ref: "#/definitions/Erreur"
+        404:
+          description: Image introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+  /descripteurs:
+    post:
+      tags: [Descripteurs]
+      summary: Renvoie les descripteurs d'une ou plusieurs images
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            type: object
+            required: [images]
+            properties:
+              images:
+                type: array
+                description: 1 à 100 images
+                items:
+                  type: object
+                  required: [source, id]
+                  properties:
+                    source:
+                      type: string
+                      enum: [galerie]
+                    id:
+                      type: integer
+                      example: 7
+      responses:
+        200:
+          description: Une entrée par image, dans l'ordre demandé
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Descripteurs"
+        400:
+          description: Liste absente, vide, trop longue ou mal écrite
           schema:
             $ref: "#/definitions/Erreur"
         404:
