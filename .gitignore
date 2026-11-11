@@ -1,0 +1,13 @@
+# Generated folders (not delivered)
+data/
+.venv/
+__pycache__/
+frontend/node_modules/
+frontend/dist/
+
+# Internal documents (the reference paper lives in paper/ and is versioned)
+docs/
+
+# Local tooling
+CLAUDE.md
+.claude/
