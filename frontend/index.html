@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Similis</title>
+    <script>
+      // Pose le mode sombre avant le premier affichage : pas d'éclair blanc au chargement.
+      // Même clé et mêmes valeurs que src/apparence.js ('auto', 'light', 'dark').
+      try {
+        const choix = localStorage.getItem('similis-theme')
+        const systeme = matchMedia('(prefers-color-scheme: dark)').matches
+        if (choix === 'dark' || (choix !== 'light' && systeme)) {
+          document.documentElement.classList.add('dark')
+        }
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

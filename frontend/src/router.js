@@ -1,12 +1,9 @@
-import { ref } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { moi } from './api'
+import { utilisateur } from './session'
 import Connexion from './vues/Connexion.vue'
 import Galerie from './vues/Galerie.vue'
-
-// Utilisateur connecté, partagé par toute l'application.
-// undefined : pas encore vérifié ; null : non connecté ; objet : connecté.
-export const utilisateur = ref(undefined)
+import Profil from './vues/Profil.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +11,7 @@ const router = createRouter({
     { path: '/', redirect: '/galerie' },
     { path: '/connexion', component: Connexion, meta: { publique: true } },
     { path: '/galerie', component: Galerie },
+    { path: '/profil', component: Profil },
     { path: '/:inconnu(.*)', redirect: '/galerie' },
   ],
 })
