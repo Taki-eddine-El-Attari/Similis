@@ -1,8 +1,9 @@
 <script setup>
 // Galerie : arbre des catégories à gauche, images de la catégorie choisie à droite.
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
-import { ChevronRight, FolderPlus } from '@lucide/vue'
+import { ChevronRight, FolderPlus, Maximize2 } from '@lucide/vue'
 import {
   chargerImages, creerCategorie, deplacerImage, listerCategories, listerImages,
   renommerCategorie, supprimerCategorie, supprimerImages, urlFichier, zipImages,
@@ -22,8 +23,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const route = useRoute()
+const router = useRouter()
+
 const categories = ref([]) // liste à plat renvoyée par l'API
-const courante = ref(null) // id de la catégorie affichée ; null : « Sans catégorie »
+// id de la catégorie affichée ; null : « Sans catégorie ». Valeur de départ lue dans l'adresse.
+const courante = ref(Number(route.query.categorie) || null)
 const images = ref([])
 const selection = ref([]) // ids des images cochées
 const occupe = ref(false) // une action longue est en cours
@@ -127,10 +132,17 @@ function ouvrir(id) {
   courante.value = id
   selection.value = []
   message.value = ''
+  // La catégorie affichée est notée dans l'adresse (/galerie?categorie=3) :
+  // on la retrouve après un rechargement ou en revenant de la page d'une image.
+  router.replace({ query: id === null ? {} : { categorie: id } })
   actualiser()
 }
 
-onMounted(actualiser)
+onMounted(async () => {
+  await actualiser()
+  // Catégorie de l'adresse introuvable (supprimée, ou d'un autre compte) : retour à « Sans catégorie ».
+  if (courante.value !== null && !categorie.value) ouvrir(null)
+})
 
 // --- Chargement d'images ---
 
@@ -412,7 +424,16 @@ async function confirmer() {
         class="relative grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
         :aria-busy="occupe"
       >
-        <li v-for="image in images" :key="image.id">
+        <li v-for="image in images" :key="image.id" class="relative">
+          <!-- Ouvre la page de l'image (aperçu et transformations) ; le reste de la vignette sert à cocher -->
+          <RouterLink
+            :to="'/images/' + image.id"
+            class="absolute top-1.5 right-1.5 z-10 grid size-6 place-items-center rounded-md bg-black/40 text-white hover:bg-black/70"
+            :aria-label="'Ouvrir ' + image.nom"
+            :title="'Ouvrir ' + image.nom"
+          >
+            <Maximize2 class="size-3.5" />
+          </RouterLink>
           <label
             class="vignette relative block aspect-square cursor-pointer overflow-hidden rounded-lg border bg-muted outline-2 outline-offset-2 outline-transparent"
           >

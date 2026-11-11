@@ -11,6 +11,7 @@ import auth
 import categories
 import db
 import images
+import transformations
 
 DOSSIER = Path(__file__).parent
 
@@ -57,6 +58,7 @@ def creer_app(donnees=DOSSIER.parent / "data"):
     api.add_resource(images.Images, "/api/images")
     api.add_resource(images.Image, "/api/images/<int:id>")
     api.add_resource(images.Fichier, "/api/images/<int:id>/fichier")
+    api.add_resource(transformations.Transformations, "/api/images/<int:id>/transformations")
     api.add_resource(images.Zip, "/api/images/zip")
     api.add_resource(images.Suppression, "/api/images/suppression")
 

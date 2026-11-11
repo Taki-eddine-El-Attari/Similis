@@ -74,6 +74,17 @@ export function listerImages(categorieId) {
   return appeler('GET', '/images' + (categorieId === null ? '' : '?categorie_id=' + categorieId))
 }
 
+// GET /api/images/<id> — une image : nom, catégorie, dimensions
+export function lireImage(id) {
+  return appeler('GET', '/images/' + id)
+}
+
+// POST /api/images/<id>/transformations — crée une nouvelle image
+// type : 'recadrage', 'echelle', 'rotation', 'miroir' ou 'gris' ; parametres : ceux du type
+export function transformerImage(id, type, parametres = {}) {
+  return appeler('POST', `/images/${id}/transformations`, { type, ...parametres })
+}
+
 // POST /api/images — charge des fichiers ; renvoie { creees, refusees }
 export function chargerImages(fichiers, categorieId) {
   const formulaire = new FormData()

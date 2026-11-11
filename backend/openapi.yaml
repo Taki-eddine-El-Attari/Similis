@@ -14,6 +14,8 @@ tags:
     description: Hiérarchie libre, propre à chaque utilisateur.
   - name: Images
     description: Images de la galerie. L'image d'un autre utilisateur répond 404.
+  - name: Transformations
+    description: Chaque transformation crée une nouvelle image avec ses propres dimensions.
 definitions:
   Categorie:
     type: object
@@ -342,6 +344,18 @@ paths:
         name: id
         type: integer
         required: true
+    get:
+      tags: [Images]
+      summary: Renvoie une image (nom, catégorie, dimensions)
+      responses:
+        200:
+          description: L'image
+          schema:
+            $ref: "#/definitions/Image"
+        404:
+          description: Image introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
     put:
       tags: [Images]
       summary: Déplace une image vers une catégorie
@@ -400,6 +414,67 @@ paths:
           description: Le fichier
           schema:
             type: file
+        404:
+          description: Image introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+  /images/{id}/transformations:
+    post:
+      tags: [Transformations]
+      summary: Crée une nouvelle image par transformation (l'originale est conservée)
+      description: |
+        Paramètres selon le type :
+        - recadrage : x, y, largeur, hauteur (entiers, zone entièrement dans l'image)
+        - echelle : facteur (entre 0,1 et 4)
+        - rotation : angle (90, 180 ou 270, sens des aiguilles d'une montre)
+        - miroir : axe (horizontal ou vertical)
+        - gris : aucun paramètre
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: corps
+          required: true
+          schema:
+            type: object
+            required: [type]
+            properties:
+              type:
+                type: string
+                enum: [recadrage, echelle, rotation, miroir, gris]
+                example: recadrage
+              x:
+                type: integer
+                example: 10
+              y:
+                type: integer
+                example: 20
+              largeur:
+                type: integer
+                example: 200
+              hauteur:
+                type: integer
+                example: 150
+              facteur:
+                type: number
+                example: 0.5
+              angle:
+                type: integer
+                enum: [90, 180, 270]
+              axe:
+                type: string
+                enum: [horizontal, vertical]
+      responses:
+        201:
+          description: Nouvelle image, dans la même catégorie, nommée d'après le type (plage_recadrage.jpg)
+          schema:
+            $ref: "#/definitions/Image"
+        400:
+          description: Type inconnu ou paramètre invalide
+          schema:
+            $ref: "#/definitions/Erreur"
         404:
           description: Image introuvable
           schema:

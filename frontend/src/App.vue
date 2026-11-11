@@ -47,6 +47,7 @@ async function seDeconnecter() {
             :to="lien.chemin"
             class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             active-class="bg-sidebar-accent font-medium !text-sidebar-accent-foreground"
+            :class="{ 'bg-sidebar-accent font-medium !text-sidebar-accent-foreground': lien.chemin === '/galerie' && $route.path.startsWith('/images/') }"
           >
             <component :is="lien.icone" :size="16" />
             {{ lien.texte }}
@@ -72,7 +73,7 @@ async function seDeconnecter() {
       <!-- Changement de page : l'ancienne s'efface, puis la nouvelle apparaît -->
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="$route.path" />
         </Transition>
       </RouterView>
     </main>

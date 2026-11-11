@@ -3,6 +3,7 @@ import { moi } from './api'
 import { utilisateur } from './session'
 import Connexion from './vues/Connexion.vue'
 import Galerie from './vues/Galerie.vue'
+import PageImage from './vues/Image.vue'
 import Profil from './vues/Profil.vue'
 
 const router = createRouter({
@@ -11,6 +12,8 @@ const router = createRouter({
     { path: '/', redirect: '/galerie' },
     { path: '/connexion', component: Connexion, meta: { publique: true } },
     { path: '/galerie', component: Galerie },
+    // (\\d+) : l'identifiant doit être un nombre
+    { path: '/images/:id(\\d+)', component: PageImage },
     { path: '/profil', component: Profil },
     { path: '/:inconnu(.*)', redirect: '/galerie' },
   ],

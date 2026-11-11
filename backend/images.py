@@ -74,9 +74,18 @@ def enregistrer(fichier, categorie_id):
     pixels = cv2.imdecode(np.frombuffer(contenu, np.uint8), cv2.IMREAD_COLOR) if contenu else None
     if pixels is None:
         return None, "Ce fichier n'est pas une image lisible."
+    return ajouter(nom, contenu, pixels, categorie_id), None
+
+
+def ajouter(nom, contenu, pixels, categorie_id):
+    """Écrit le fichier d'une image et crée sa ligne en base. Renvoie l'image.
+
+    « contenu » : les octets du fichier ; « pixels » : la même image décodée par OpenCV.
+    Sert au chargement et aux transformations.
+    """
     hauteur, largeur = pixels.shape[:2]
     # Nom généré : deux fichiers de même nom ne s'écrasent pas, et le nom reçu ne sert jamais de chemin.
-    sur_disque = uuid.uuid4().hex + extension
+    sur_disque = uuid.uuid4().hex + Path(nom).suffix.lower()
     dossier().mkdir(parents=True, exist_ok=True)
     (dossier() / sur_disque).write_bytes(contenu)
     db = connexion()
@@ -85,7 +94,7 @@ def enregistrer(fichier, categorie_id):
         (g.utilisateur["id"], categorie_id, nom, sur_disque, largeur, hauteur),
     )
     db.commit()
-    return publique(trouver(curseur.lastrowid)), None
+    return publique(trouver(curseur.lastrowid))
 
 
 class Images(Resource):
@@ -128,6 +137,13 @@ class Images(Resource):
 
 
 class Image(Resource):
+    def get(self, id):
+        """GET /api/images/<id> — renvoie une image (nom, catégorie, dimensions)."""
+        image = trouver(id)
+        if image is None:
+            return {"erreur": "Image introuvable."}, 404
+        return publique(image)
+
     def put(self, id):
         """PUT /api/images/<id> — déplace l'image (categorie_id nul : sans catégorie)."""
         if trouver(id) is None:
