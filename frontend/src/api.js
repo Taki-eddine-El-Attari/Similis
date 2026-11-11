@@ -137,6 +137,13 @@ export function chercherSimilaires(requete, k) {
   return appeler('POST', '/recherche', { requete, k })
 }
 
+// POST /api/recherche/affiner — retour de pertinence FRE
+// pertinentes : toutes les images cochées depuis le début, sous la forme { source, id }
+// renvoie { requete, resultats, poids_par_descripteur }
+export function affinerRecherche(requete, pertinentes, k) {
+  return appeler('POST', '/recherche/affiner', { requete, pertinentes, k })
+}
+
 // Adresse du fichier d'une image, qu'elle vienne de la galerie ou de GHIM-10K
 export function urlImage(image) {
   return image.source === 'ghim' ? `/api/ghim/${image.id}/fichier` : urlFichier(image.id)

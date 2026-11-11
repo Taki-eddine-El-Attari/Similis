@@ -1,12 +1,14 @@
 <script setup>
 // Recherche par le contenu. Deux états, selon l'adresse :
 //   /recherche                        choisir une image requête dans GHIM-10K
-//   /recherche?source=ghim&id=4012    résultats pour cette image requête
+//   /recherche?source=ghim&id=4012    résultats pour cette image requête, puis retour de pertinence :
+//                                     on coche les résultats pertinents et on clique sur « Affiner »
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
-import { ArrowLeft } from '@lucide/vue'
-import { chercherSimilaires, listerCategoriesGhim, listerImagesGhim, urlImage } from '@/api'
+import { ArrowLeft, RefreshCw } from '@lucide/vue'
+import { affinerRecherche, chercherSimilaires, listerCategoriesGhim, listerImagesGhim, urlImage } from '@/api'
+import Check from '@/components/animate-ui/icons/Check.vue'
 import Search from '@/components/animate-ui/icons/Search.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -63,13 +65,57 @@ const PAR_PAGE = 40 // au-delà, les résultats sont découpés en pages
 const pageResultats = ref(1)
 const infoRequete = ref(null) // nom et catégorie de l'image requête, renvoyés par l'API
 
-async function lancer() {
+// Retour de pertinence FRE. Le serveur ne garde rien : à chaque « Affiner », on lui renvoie
+// la requête d'origine et toutes les images cochées depuis le début.
+const pertinentes = ref([]) // images cochées (cumul), notées 'source:id', par exemple 'ghim:4012'
+const iteration = ref(0) // 0 : recherche simple ; +1 à chaque « Affiner »
+const poids = ref(null) // part du poids total par descripteur, après un « Affiner »
+
+const cle = (image) => image.source + ':' + image.id
+// 'ghim:4012' → { source: 'ghim', id: 4012 }, la forme attendue par l'API
+function designer(texte) {
+  const [source, id] = texte.split(':')
+  return { source, id: Number(id) }
+}
+
+// Les 5 descripteurs du graphique des poids, avec leur couleur du thème.
+const DESCRIPTEURS = [
+  { cle: 'histogrammes', nom: 'Histogrammes', couleur: 'var(--chart-1)' },
+  { cle: 'moments', nom: 'Moments', couleur: 'var(--chart-2)' },
+  { cle: 'dominantes', nom: 'Dominantes', couleur: 'var(--chart-3)' },
+  { cle: 'glcm', nom: 'GLCM', couleur: 'var(--chart-4)' },
+  { cle: 'lbp', nom: 'LBP', couleur: 'var(--chart-5)' },
+]
+
+// affinage = false : nouvelle recherche simple, on repart de zéro.
+// affinage = true  : retour de pertinence avec les images cochées.
+async function lancer(affinage = false) {
+  const precedents = resultats.value
   resultats.value = null
-  const reponse = await executer(() => chercherSimilaires(requete.value, Number(k.value)))
+  if (!affinage) {
+    pertinentes.value = []
+    iteration.value = 0
+    poids.value = null
+  }
+  const nombreDemande = Number(k.value)
+  const reponse = await executer(() =>
+    affinage
+      ? affinerRecherche(requete.value, pertinentes.value.map(designer), nombreDemande)
+      : chercherSimilaires(requete.value, nombreDemande),
+  )
+  if (!reponse) {
+    resultats.value = precedents || [] // en cas d'erreur, les résultats précédents restent affichés
+    return
+  }
+  if (affinage) {
+    iteration.value++
+    poids.value = reponse.poids_par_descripteur
+  }
   infoRequete.value = reponse?.requete || null
-  // L'image requête est déjà affichée à gauche : on la retire de la liste (elle y est en premier, distance 0).
+  // L'image requête est déjà affichée à gauche : on la retire de la liste.
   const estRequete = (image) => image.source === requete.value.source && image.id === requete.value.id
-  resultats.value = (reponse?.resultats || []).filter((image) => !estRequete(image))
+  // Le serveur renvoie une ligne de plus que demandé, pour la requête : on garde les k premières des autres.
+  resultats.value = reponse.resultats.filter((image) => !estRequete(image)).slice(0, nombreDemande)
   pageResultats.value = 1
 }
 
@@ -175,7 +221,8 @@ watch(
 
     <!-- État 2 : résultats -->
     <div v-else class="grid gap-6 lg:grid-cols-[16rem_1fr] lg:items-start">
-      <!-- Image requête et réglage du nombre de résultats -->
+      <!-- Colonne de gauche : image requête, réglage, puis poids des descripteurs -->
+      <div class="grid gap-4">
       <Card>
         <CardHeader>
           <CardTitle>Image requête</CardTitle>
@@ -195,7 +242,7 @@ watch(
               {{ infoRequete.categorie }}
             </span>
           </div>
-          <form class="grid gap-2" @submit.prevent="lancer">
+          <form class="grid gap-2" @submit.prevent="lancer()">
             <Label for="k">Nombre de résultats</Label>
             <div class="flex gap-2">
               <Input id="k" v-model="k" type="number" min="5" max="100" required class="w-20" />
@@ -212,15 +259,49 @@ watch(
         </CardContent>
       </Card>
 
+      <!-- Après un « Affiner » : part du poids total portée par chaque descripteur -->
+      <Transition name="fondu">
+        <Card v-if="poids">
+          <CardHeader>
+            <CardTitle>Poids par descripteur</CardTitle>
+            <CardDescription>Plus un descripteur est stable entre les images cochées, plus il pèse.</CardDescription>
+          </CardHeader>
+          <CardContent class="grid gap-2">
+            <div v-for="d in DESCRIPTEURS" :key="d.cle" class="grid grid-cols-[6.5rem_1fr_3rem] items-center gap-2 text-xs">
+              <span>{{ d.nom }}</span>
+              <span class="h-2 overflow-hidden rounded-full bg-muted">
+                <span
+                  class="block h-full rounded-full transition-[width] duration-300"
+                  :style="{ width: poids[d.cle] * 100 + '%', background: d.couleur }"
+                />
+              </span>
+              <span class="text-right font-mono">{{ Math.round(poids[d.cle] * 100) }} %</span>
+            </div>
+          </CardContent>
+        </Card>
+      </Transition>
+      </div>
+
       <!-- Résultats classés par distance croissante -->
       <div class="grid min-w-0 gap-3">
-        <p class="text-sm text-muted-foreground" aria-live="polite">
-          <template v-if="resultats">
-            <span class="font-mono">{{ resultats.length }}</span> résultats, du plus proche au plus éloigné,
-            dans GHIM-10K et votre galerie.
-          </template>
-          <template v-else>Recherche en cours</template>
-        </p>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p class="mr-auto text-sm text-muted-foreground" aria-live="polite">
+            <template v-if="resultats">
+              <span class="font-mono">{{ resultats.length }}</span> résultats, du plus proche au plus éloigné,
+              dans GHIM-10K et votre galerie. Cochez les images pertinentes, puis cliquez sur Affiner.
+            </template>
+            <template v-else>Recherche en cours</template>
+          </p>
+          <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+            Itération <span class="font-mono">{{ iteration }}</span>
+          </span>
+          <Button :disabled="occupe || !resultats" @click="lancer(true)">
+            <RefreshCw />
+            {{ pertinentes.length
+              ? `Affiner avec ${pertinentes.length} image${pertinentes.length > 1 ? 's' : ''}`
+              : 'Affiner' }}
+          </Button>
+        </div>
 
         <ul v-if="!resultats" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" aria-busy="true">
           <li v-for="n in Math.min(Number(k) || 20, 20)" :key="n" class="squelette aspect-square rounded-lg" />
@@ -229,13 +310,26 @@ watch(
           <li
             v-for="(image, i) in visibles"
             :key="image.source + image.id"
-            class="squelette relative aspect-square overflow-hidden rounded-lg border"
+            class="squelette relative aspect-square overflow-hidden rounded-lg border outline-2 outline-offset-2 outline-transparent"
+            :class="{ '!outline-primary': pertinentes.includes(cle(image)) }"
           >
-            <img :src="urlImage(image)" :alt="image.nom" loading="lazy" class="size-full object-cover" />
-            <!-- Rang dans le classement complet, toutes pages confondues -->
-            <span class="absolute top-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
-              {{ (pageResultats - 1) * PAR_PAGE + i + 1 }}
-            </span>
+            <!-- Toute la vignette sert à cocher l'image comme pertinente -->
+            <label class="block size-full cursor-pointer">
+              <img :src="urlImage(image)" :alt="image.nom" loading="lazy" draggable="false" class="size-full object-cover" />
+              <input
+                v-model="pertinentes"
+                type="checkbox"
+                class="peer sr-only"
+                :value="cle(image)"
+                :aria-label="'Marquer ' + image.nom + ' comme pertinente'"
+              />
+              <span
+                class="absolute top-1.5 left-1.5 grid size-5 place-items-center rounded-md border-[1.5px] border-white bg-black/25 text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50"
+                aria-hidden="true"
+              >
+                <Check :size="13" :stroke-width="3" />
+              </span>
+            </label>
             <button
               type="button"
               class="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-md bg-black/40 text-white hover:bg-black/70"
@@ -245,13 +339,14 @@ watch(
             >
               <Search :size="13" />
             </button>
-            <span class="absolute inset-x-0 bottom-0 flex justify-between gap-2 bg-gradient-to-t from-black/70 px-2 pt-5 pb-1.5 text-[11px] text-white">
-              <span class="truncate">{{ image.categorie }}</span>
+            <!-- Rang dans le classement complet (toutes pages confondues), catégorie et distance -->
+            <span class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between gap-2 bg-gradient-to-t from-black/70 px-2 pt-5 pb-1.5 text-[11px] text-white">
+              <span class="truncate"><span class="font-mono">{{ (pageResultats - 1) * PAR_PAGE + i + 1 }}</span> · {{ image.categorie }}</span>
               <span class="shrink-0 font-mono">{{ nombre(image.distance) }}</span>
             </span>
             <span
               v-if="image.source === 'galerie'"
-              class="absolute right-1.5 bottom-7 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground"
+              class="pointer-events-none absolute right-1.5 bottom-7 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground"
             >
               Ma galerie
             </span>

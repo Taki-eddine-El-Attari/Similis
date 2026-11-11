@@ -160,35 +160,87 @@ class Descripteurs(Resource):
         return reponse
 
 
+EPSILON = 0.0001  # ε de la formule 4 : évite une division par zéro quand une composante ne varie pas
+
+# Place de chaque descripteur dans le vecteur de 141 valeurs, pour le graphique des poids.
+GROUPES = {"histogrammes": (0, 96), "moments": (96, 105), "dominantes": (105, 125), "glcm": (125, 131), "lbp": (131, 141)}
+
+
+def chercher(affiner):
+    """Code commun aux deux services de recherche.
+
+    affiner = False : recherche simple, distance à poids égaux (formule 1).
+    affiner = True  : retour de pertinence FRE. Le corps contient en plus « pertinentes », la liste
+    complète des images cochées depuis le début : le serveur ne garde aucun état entre deux appels.
+    """
+    idx = index()
+    if idx is None:
+        return ABSENT
+    corps = corps_json()
+    k = corps.get("k", 20)
+    if not est_entier(k) or not 5 <= k <= 100:
+        return {"erreur": "k doit être un entier entre 5 et 100."}, 400
+    designations = [corps.get("requete")]
+    if affiner:
+        pertinentes = corps.get("pertinentes")
+        if not isinstance(pertinentes, list) or len(pertinentes) > 500:
+            return {"erreur": "« pertinentes » doit être une liste de 500 images au plus."}, 400
+        designations += pertinentes
+
+    # La base de recherche réunit GHIM-10K et la galerie de l'utilisateur, dans cet ordre.
+    # Tout est normalisé avec les statistiques de GHIM-10K, fixes et communes à tous.
+    dans_galerie, bruts = galerie()
+    base = np.vstack([idx["normalises"], normaliser(bruts, idx["moyenne"], idx["ecart_type"])])
+    nb_ghim = len(idx["chemins"])
+    ids_galerie = [image["id"] for image in dans_galerie]
+
+    # Ligne de chaque image désignée dans « base » ; la première est la requête.
+    positions = []
+    for designation in designations:
+        source, id, erreur, code = lire_designation(designation, idx)
+        if erreur:
+            return {"erreur": erreur}, code
+        positions.append(id if source == "ghim" else nb_ghim + ids_galerie.index(id))
+    requete = positions[0]
+
+    poids = None
+    if affiner:
+        # Ensemble pertinent R : la requête et les images cochées, chacune une seule fois.
+        pertinents = base[list(dict.fromkeys(positions))]
+        # Formule 4 : w_i = 1 / (ε + σ_i), σ_i étant l'écart-type de la composante i sur R.
+        # Une composante qui varie peu entre les images pertinentes compte beaucoup, et inversement.
+        # Si R ne contient que la requête, tous les σ_i sont nuls : poids égaux, donc recherche simple.
+        poids = 1 / (EPSILON + pertinents.std(axis=0))
+        # Nouvelle requête (tableau 1 du papier) : la moyenne des vecteurs de R.
+        d = distances(base, pertinents.mean(axis=0), poids)
+    else:
+        d = distances(base, base[requete])
+
+    # Tri par distance croissante. À distance égale (copie exacte), l'image requête passe en premier.
+    autre = np.arange(len(base)) != requete
+    # k + 1 lignes : en recherche simple, la requête elle-même (distance 0) puis les k images demandées.
+    ordre = np.lexsort((autre, d))[:k + 1]
+
+    def decrire(i):
+        image = decrire_ghim(idx, int(i)) if i < nb_ghim else dans_galerie[i - nb_ghim]
+        return {**image, "distance": float(d[i])}
+
+    reponse = {"requete": decrire(requete), "resultats": [decrire(i) for i in ordre]}
+    if affiner:
+        # Part du poids total portée par chaque descripteur (la somme des 5 parts vaut 1).
+        reponse["poids_par_descripteur"] = {
+            nom: float(poids[debut:fin].sum() / poids.sum()) for nom, (debut, fin) in GROUPES.items()
+        }
+    return reponse
+
+
 class Recherche(Resource):
     def post(self):
         """POST /api/recherche — la requête puis ses k images les plus proches : {requete: {source, id}, k}."""
-        idx = index()
-        if idx is None:
-            return ABSENT
-        corps = corps_json()
-        source, id, erreur, code = lire_designation(corps.get("requete"), idx)
-        if erreur:
-            return {"erreur": erreur}, code
-        k = corps.get("k", 20)
-        if not est_entier(k) or not 5 <= k <= 100:
-            return {"erreur": "k doit être un entier entre 5 et 100."}, 400
+        return chercher(affiner=False)
 
-        # La base de recherche réunit GHIM-10K et la galerie de l'utilisateur, dans cet ordre.
-        # Tout est normalisé avec les statistiques de GHIM-10K, fixes et communes à tous.
-        dans_galerie, bruts = galerie()
-        base = np.vstack([idx["normalises"], normaliser(bruts, idx["moyenne"], idx["ecart_type"])])
-        nb_ghim = len(idx["chemins"])
-        position = id if source == "ghim" else nb_ghim + [image["id"] for image in dans_galerie].index(id)
 
-        d = distances(base, base[position])
-        # Tri par distance croissante. À distance égale (copie exacte), la requête passe en premier.
-        autre = np.arange(len(base)) != position
-        # k + 1 lignes : la requête elle-même, puis les k images demandées.
-        ordre = np.lexsort((autre, d))[:k + 1]
-
-        def decrire(i):
-            image = decrire_ghim(idx, int(i)) if i < nb_ghim else dans_galerie[i - nb_ghim]
-            return {**image, "distance": float(d[i])}
-
-        return {"requete": decrire(position), "resultats": [decrire(i) for i in ordre]}
+class Affiner(Resource):
+    def post(self):
+        """POST /api/recherche/affiner — retour de pertinence FRE : {requete, pertinentes: [...], k}."""
+        return chercher(affiner=True)

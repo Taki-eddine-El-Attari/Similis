@@ -66,6 +66,7 @@ def creer_app(donnees=DOSSIER.parent / "storage", ghim=DOSSIER.parent / "data" /
     api.add_resource(recherche.Ghim, "/api/ghim")
     api.add_resource(recherche.GhimFichier, "/api/ghim/<int:id>/fichier")
     api.add_resource(recherche.Recherche, "/api/recherche")
+    api.add_resource(recherche.Affiner, "/api/recherche/affiner")
     api.add_resource(images.Zip, "/api/images/zip")
     api.add_resource(images.Suppression, "/api/images/suppression")
 

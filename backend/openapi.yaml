@@ -741,6 +741,80 @@ paths:
           description: Index absent (lancer backend/indexer.py)
           schema:
             $ref: "#/definitions/Erreur"
+  /recherche/affiner:
+    post:
+      tags: [Recherche]
+      summary: Retour de pertinence FRE (Feature Relevance Estimation)
+      description: |
+        Le serveur ne garde aucun état : chaque appel envoie la requête d'origine
+        et toutes les images cochées depuis le début.
+        Ensemble pertinent R : la requête et les images cochées.
+        Poids (formule 4) : w = 1 / (0,0001 + écart-type de la composante sur R).
+        Nouvelle requête : moyenne des vecteurs de R.
+        Distance (formule 3) : somme pondérée des carrés des écarts, divisée par la somme des poids.
+        Sans image cochée, le résultat est celui de la recherche simple.
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            type: object
+            required: [requete, pertinentes]
+            properties:
+              requete:
+                $ref: "#/definitions/Designation"
+              pertinentes:
+                type: array
+                description: images cochées depuis le début (500 au plus), liste vide acceptée
+                items:
+                  $ref: "#/definitions/Designation"
+              k:
+                type: integer
+                description: nombre de résultats, de 5 à 100 (20 par défaut)
+                example: 20
+      responses:
+        200:
+          description: Les k + 1 images les plus proches de la nouvelle requête, et la part du poids par descripteur
+          schema:
+            type: object
+            properties:
+              requete:
+                $ref: "#/definitions/Resultat"
+              resultats:
+                type: array
+                items:
+                  $ref: "#/definitions/Resultat"
+              poids_par_descripteur:
+                type: object
+                description: part du poids total (la somme vaut 1)
+                properties:
+                  histogrammes:
+                    type: number
+                    example: 0.31
+                  moments:
+                    type: number
+                    example: 0.24
+                  dominantes:
+                    type: number
+                    example: 0.09
+                  glcm:
+                    type: number
+                    example: 0.22
+                  lbp:
+                    type: number
+                    example: 0.14
+        400:
+          description: Requête ou liste mal écrite, k hors limites
+          schema:
+            $ref: "#/definitions/Erreur"
+        404:
+          description: Image introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+        503:
+          description: Index absent (lancer backend/indexer.py)
+          schema:
+            $ref: "#/definitions/Erreur"
   /images/zip:
     post:
       tags: [Images]
