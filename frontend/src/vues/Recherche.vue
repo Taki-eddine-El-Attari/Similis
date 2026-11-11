@@ -5,6 +5,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
+import { ArrowLeft } from '@lucide/vue'
 import { chercherSimilaires, listerCategoriesGhim, listerImagesGhim, urlImage } from '@/api'
 import Search from '@/components/animate-ui/icons/Search.vue'
 import { Button } from '@/components/ui/button'
@@ -86,7 +87,18 @@ watch(
 <template>
   <section class="grid gap-4">
     <header>
-      <p class="text-sm text-muted-foreground">Recherche</p>
+      <!-- Lien de retour : vers la page de l'image si la requête vient de la galerie, sinon vers le choix -->
+      <nav class="flex items-center gap-x-1.5 text-sm text-muted-foreground" aria-label="Chemin">
+        <RouterLink
+          v-if="requete"
+          :to="requete.source === 'galerie' ? '/images/' + requete.id : '/recherche'"
+          class="flex items-center gap-1 rounded hover:text-foreground hover:underline"
+        >
+          <ArrowLeft class="size-3.5" />
+          {{ requete.source === 'galerie' ? "Retour à l'image" : 'Retour au choix de l\'image' }}
+        </RouterLink>
+        <span v-else>Recherche</span>
+      </nav>
       <h1 class="text-2xl font-semibold tracking-tight">
         {{ requete ? 'Images similaires' : 'Choisir une image requête' }}
       </h1>
@@ -226,7 +238,7 @@ watch(
               <Search :size="13" />
             </button>
             <span class="absolute inset-x-0 bottom-0 flex justify-between gap-2 bg-gradient-to-t from-black/70 px-2 pt-5 pb-1.5 text-[11px] text-white">
-              <span class="truncate">{{ image.categorie || (image.source === 'galerie' ? 'Ma galerie' : '') }}</span>
+              <span class="truncate">{{ image.categorie }}</span>
               <span class="shrink-0 font-mono">{{ nombre(image.distance) }}</span>
             </span>
             <span
