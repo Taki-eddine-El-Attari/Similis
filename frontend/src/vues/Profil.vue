@@ -30,7 +30,7 @@ const accents = [
         <CardTitle>Compte</CardTitle>
         <CardDescription>Nom d'utilisateur</CardDescription>
       </CardHeader>
-      <CardContent class="font-medium">{{ utilisateur.nom }}</CardContent>
+      <CardContent class="font-medium">{{ utilisateur?.nom }}</CardContent>
     </Card>
 
     <Card>

@@ -8,7 +8,9 @@ from flask import Flask
 from flask_restful import Api, Resource
 
 import auth
+import categories
 import db
+import images
 
 DOSSIER = Path(__file__).parent
 
@@ -35,7 +37,10 @@ def creer_app(donnees=DOSSIER.parent / "data"):
 
     app = Flask(__name__)
     app.config["BASE"] = donnees / "similis.db"
+    app.config["UPLOADS"] = donnees / "uploads"
     app.config["SECRET_KEY"] = cle_secrete(donnees)
+    # Taille maximale d'un envoi complet (plusieurs fichiers) ; au-delà : 413.
+    app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024
     # Le cookie de session n'est pas envoyé par les requêtes venant d'un autre site.
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     db.initialiser(app)
@@ -47,6 +52,13 @@ def creer_app(donnees=DOSSIER.parent / "data"):
     api.add_resource(auth.Connexion, "/api/auth/connexion")
     api.add_resource(auth.Deconnexion, "/api/auth/deconnexion")
     api.add_resource(auth.Moi, "/api/auth/moi")
+    api.add_resource(categories.Categories, "/api/categories")
+    api.add_resource(categories.Categorie, "/api/categories/<int:id>")
+    api.add_resource(images.Images, "/api/images")
+    api.add_resource(images.Image, "/api/images/<int:id>")
+    api.add_resource(images.Fichier, "/api/images/<int:id>/fichier")
+    api.add_resource(images.Zip, "/api/images/zip")
+    api.add_resource(images.Suppression, "/api/images/suppression")
 
     # Documentation interactive des services : http://localhost:5000/apidocs
     # « auth » vide : sans lui, la page de flasgger 0.9.7.1 lève une erreur JavaScript.

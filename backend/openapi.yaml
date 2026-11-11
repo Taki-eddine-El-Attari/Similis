@@ -10,7 +10,60 @@ tags:
   - name: Système
   - name: Authentification
     description: Session par cookie. Tous les autres services exigent d'être connecté.
+  - name: Catégories
+    description: Hiérarchie libre, propre à chaque utilisateur.
+  - name: Images
+    description: Images de la galerie. L'image d'un autre utilisateur répond 404.
 definitions:
+  Categorie:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 3
+      parent_id:
+        type: integer
+        x-nullable: true
+        description: nul pour une catégorie racine
+        example: 1
+      nom:
+        type: string
+        example: Maroc
+      nb_images:
+        type: integer
+        example: 12
+  Image:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 7
+      categorie_id:
+        type: integer
+        x-nullable: true
+        description: nul pour une image sans catégorie
+        example: 3
+      nom:
+        type: string
+        example: plage.jpg
+      largeur:
+        type: integer
+        example: 400
+      hauteur:
+        type: integer
+        example: 300
+      cree_le:
+        type: string
+        example: "2026-11-11 16:00:00"
+  Ids:
+    type: object
+    required: [ids]
+    properties:
+      ids:
+        type: array
+        items:
+          type: integer
+        example: [7, 8]
   Identifiants:
     type: object
     required: [nom, mot_de_passe]
@@ -117,3 +170,276 @@ paths:
               application:
                 type: string
                 example: Similis
+  /categories:
+    get:
+      tags: [Catégories]
+      summary: Liste à plat des catégories (l'arbre est construit par le frontend)
+      responses:
+        200:
+          description: Catégories de l'utilisateur
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Categorie"
+    post:
+      tags: [Catégories]
+      summary: Crée une catégorie
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            type: object
+            required: [nom]
+            properties:
+              nom:
+                type: string
+                description: 1 à 50 caractères
+                example: Maroc
+              parent_id:
+                type: integer
+                x-nullable: true
+                description: absent ou nul pour créer à la racine
+                example: 1
+      responses:
+        201:
+          description: Catégorie créée
+          schema:
+            $ref: "#/definitions/Categorie"
+        400:
+          description: Nom invalide
+          schema:
+            $ref: "#/definitions/Erreur"
+        404:
+          description: Catégorie parente introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+        409:
+          description: Nom déjà utilisé sous ce parent
+          schema:
+            $ref: "#/definitions/Erreur"
+  /categories/{id}:
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+    put:
+      tags: [Catégories]
+      summary: Renomme une catégorie
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            type: object
+            required: [nom]
+            properties:
+              nom:
+                type: string
+                example: Maroc 2026
+      responses:
+        200:
+          description: Catégorie renommée
+          schema:
+            $ref: "#/definitions/Categorie"
+        400:
+          description: Nom invalide
+          schema:
+            $ref: "#/definitions/Erreur"
+        404:
+          description: Catégorie introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+        409:
+          description: Nom déjà utilisé sous ce parent
+          schema:
+            $ref: "#/definitions/Erreur"
+    delete:
+      tags: [Catégories]
+      summary: Supprime une catégorie vide
+      responses:
+        204:
+          description: Catégorie supprimée
+        404:
+          description: Catégorie introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+        409:
+          description: La catégorie contient des images ou des sous-catégories
+          schema:
+            $ref: "#/definitions/Erreur"
+  /images:
+    get:
+      tags: [Images]
+      summary: Liste les images d'une catégorie
+      parameters:
+        - in: query
+          name: categorie_id
+          type: integer
+          description: sans ce paramètre, les images sans catégorie
+      responses:
+        200:
+          description: Images, la plus récente en premier
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Image"
+        404:
+          description: Catégorie introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+    post:
+      tags: [Images]
+      summary: Charge une ou plusieurs images (JPG ou PNG, 10 Mo maximum par fichier)
+      consumes: [multipart/form-data]
+      parameters:
+        - in: formData
+          name: fichiers
+          type: file
+          required: true
+          description: champ répété, un par fichier
+        - in: formData
+          name: categorie_id
+          type: integer
+          description: absent pour charger sans catégorie
+      responses:
+        201:
+          description: Au moins une image enregistrée ; les fichiers refusés sont listés
+          schema:
+            type: object
+            properties:
+              creees:
+                type: array
+                items:
+                  $ref: "#/definitions/Image"
+              refusees:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    nom:
+                      type: string
+                      example: notes.txt
+                    raison:
+                      type: string
+                      example: Format non accepté (JPG ou PNG seulement).
+        400:
+          description: Aucun fichier envoyé, ou aucun fichier accepté
+          schema:
+            $ref: "#/definitions/Erreur"
+        404:
+          description: Catégorie introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+        413:
+          description: Envoi de plus de 200 Mo au total
+          schema:
+            $ref: "#/definitions/Erreur"
+  /images/{id}:
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+    put:
+      tags: [Images]
+      summary: Déplace une image vers une catégorie
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            type: object
+            required: [categorie_id]
+            properties:
+              categorie_id:
+                type: integer
+                x-nullable: true
+                description: nul pour « sans catégorie »
+                example: 3
+      responses:
+        200:
+          description: Image déplacée
+          schema:
+            $ref: "#/definitions/Image"
+        400:
+          description: Champ categorie_id absent
+          schema:
+            $ref: "#/definitions/Erreur"
+        404:
+          description: Image ou catégorie introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+    delete:
+      tags: [Images]
+      summary: Supprime une image (ligne en base et fichier)
+      responses:
+        204:
+          description: Image supprimée
+        404:
+          description: Image introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+  /images/{id}/fichier:
+    get:
+      tags: [Images]
+      summary: Renvoie le fichier d'une image
+      produces: [image/jpeg, image/png]
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: query
+          name: telecharger
+          type: integer
+          description: présent (par exemple 1), le fichier est renvoyé en pièce jointe
+      responses:
+        200:
+          description: Le fichier
+          schema:
+            type: file
+        404:
+          description: Image introuvable
+          schema:
+            $ref: "#/definitions/Erreur"
+  /images/zip:
+    post:
+      tags: [Images]
+      summary: Renvoie plusieurs images dans une archive ZIP
+      produces: [application/zip]
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            $ref: "#/definitions/Ids"
+      responses:
+        200:
+          description: Archive similis.zip
+          schema:
+            type: file
+        400:
+          description: Aucune image de la liste n'appartient à l'utilisateur
+          schema:
+            $ref: "#/definitions/Erreur"
+  /images/suppression:
+    post:
+      tags: [Images]
+      summary: Supprime plusieurs images
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            $ref: "#/definitions/Ids"
+      responses:
+        200:
+          description: Nombre d'images supprimées (les identifiants inconnus sont ignorés)
+          schema:
+            type: object
+            properties:
+              supprimees:
+                type: integer
+                example: 2

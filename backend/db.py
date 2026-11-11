@@ -12,6 +12,34 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
     mot_de_passe  TEXT NOT NULL,
     cree_le       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- parent_id nul : catégorie racine. Les clés étrangères empêchent de supprimer
+-- une catégorie qui contient encore des sous-catégories ou des images.
+CREATE TABLE IF NOT EXISTS categories (
+    id              INTEGER PRIMARY KEY,
+    utilisateur_id  INTEGER NOT NULL REFERENCES utilisateurs(id),
+    parent_id       INTEGER REFERENCES categories(id),
+    nom             TEXT NOT NULL COLLATE NOCASE
+);
+
+-- Pas deux catégories de même nom sous le même parent.
+-- IFNULL : pour SQLite deux NULL sont différents, les racines échapperaient à la règle.
+CREATE UNIQUE INDEX IF NOT EXISTS categories_nom_unique
+    ON categories (utilisateur_id, IFNULL(parent_id, 0), nom);
+
+-- fichier : nom généré sur le disque (UUID + extension). nom : nom affiché.
+-- descripteurs : les 141 valeurs en float32, remplies à l'étape 5.
+CREATE TABLE IF NOT EXISTS images (
+    id              INTEGER PRIMARY KEY,
+    utilisateur_id  INTEGER NOT NULL REFERENCES utilisateurs(id),
+    categorie_id    INTEGER REFERENCES categories(id),
+    nom             TEXT NOT NULL,
+    fichier         TEXT NOT NULL,
+    largeur         INTEGER NOT NULL,
+    hauteur         INTEGER NOT NULL,
+    descripteurs    BLOB,
+    cree_le         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
