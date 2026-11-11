@@ -8,7 +8,99 @@ info:
 basePath: /api
 tags:
   - name: Système
+  - name: Authentification
+    description: Session par cookie. Tous les autres services exigent d'être connecté.
+definitions:
+  Identifiants:
+    type: object
+    required: [nom, mot_de_passe]
+    properties:
+      nom:
+        type: string
+        description: 3 à 30 caractères, unique
+        example: Amine
+      mot_de_passe:
+        type: string
+        description: 8 caractères minimum
+        example: motdepasse1
+  Utilisateur:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      nom:
+        type: string
+        example: Amine
+  Erreur:
+    type: object
+    properties:
+      erreur:
+        type: string
+        example: Connexion requise.
 paths:
+  /auth/inscription:
+    post:
+      tags: [Authentification]
+      summary: Crée un compte et ouvre la session
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            $ref: "#/definitions/Identifiants"
+      responses:
+        201:
+          description: Compte créé
+          schema:
+            $ref: "#/definitions/Utilisateur"
+        400:
+          description: Nom ou mot de passe invalide
+          schema:
+            $ref: "#/definitions/Erreur"
+        409:
+          description: Nom déjà utilisé
+          schema:
+            $ref: "#/definitions/Erreur"
+  /auth/connexion:
+    post:
+      tags: [Authentification]
+      summary: Ouvre la session
+      parameters:
+        - in: body
+          name: corps
+          required: true
+          schema:
+            $ref: "#/definitions/Identifiants"
+      responses:
+        200:
+          description: Connecté
+          schema:
+            $ref: "#/definitions/Utilisateur"
+        401:
+          description: Nom ou mot de passe incorrect
+          schema:
+            $ref: "#/definitions/Erreur"
+  /auth/deconnexion:
+    post:
+      tags: [Authentification]
+      summary: Ferme la session
+      responses:
+        204:
+          description: Déconnecté
+  /auth/moi:
+    get:
+      tags: [Authentification]
+      summary: Renvoie l'utilisateur connecté
+      responses:
+        200:
+          description: Utilisateur connecté
+          schema:
+            $ref: "#/definitions/Utilisateur"
+        401:
+          description: Pas de session
+          schema:
+            $ref: "#/definitions/Erreur"
   /sante:
     get:
       tags: [Système]
