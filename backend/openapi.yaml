@@ -1,0 +1,27 @@
+# Description des services de l'API, affichée par Swagger sur /apidocs.
+# Chaque nouveau service est ajouté ici, sous « paths ».
+swagger: "2.0"
+info:
+  title: Similis
+  description: API de la galerie de photos et de la recherche d'images par le contenu.
+  version: "1.0"
+basePath: /api
+tags:
+  - name: Système
+paths:
+  /sante:
+    get:
+      tags: [Système]
+      summary: Vérifie que l'API répond
+      responses:
+        200:
+          description: L'API fonctionne
+          schema:
+            type: object
+            properties:
+              etat:
+                type: string
+                example: ok
+              application:
+                type: string
+                example: Similis
