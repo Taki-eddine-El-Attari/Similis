@@ -14,6 +14,15 @@ from app import creer_app
 # Image de départ : 40 × 30 pixels au hasard. En PNG (sans perte), on peut comparer pixel par pixel.
 ORIGINE = np.random.default_rng(0).integers(0, 255, (30, 40, 3), dtype=np.uint8)
 
+# Nom attendu pour chaque transformation de « plage.png » faite dans verifier().
+NOMS = {
+    "recadrage": "plage_recadrage_20x15.png",
+    "echelle": "plage_echelle_2.png",
+    "rotation": "plage_rotation_90.png",
+    "miroir": "plage_miroir_V.png",
+    "gris": "plage_gris.png",
+}
+
 
 def verifier():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as dossier:
@@ -41,14 +50,15 @@ def verifier():
             "recadrage": ({"x": 5, "y": 10, "largeur": 20, "hauteur": 15}, ORIGINE[10:25, 5:25]),
             "echelle": ({"facteur": 2}, cv2.resize(ORIGINE, (80, 60), interpolation=cv2.INTER_CUBIC)),
             "rotation": ({"angle": 90}, np.rot90(ORIGINE, k=-1)),  # k=-1 : sens des aiguilles d'une montre
-            "miroir": ({"axe": "horizontal"}, ORIGINE[:, ::-1]),
+            "miroir": ({"axe": "vertical"}, ORIGINE[:, ::-1]),  # axe vertical : la gauche et la droite s'échangent
             "gris": ({}, cv2.cvtColor(cv2.cvtColor(ORIGINE, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)),
         }
         for type, (parametres, attendu) in attendus.items():
             reponse = transformer({"type": type, **parametres})
             assert reponse.status_code == 201, (type, reponse.json)
             nouvelle = reponse.json
-            assert nouvelle["nom"] == f"plage_{type}.png" and nouvelle["id"] != origine
+            # Le nom porte le type et son paramètre
+            assert nouvelle["nom"] == NOMS[type] and nouvelle["id"] != origine
             assert nouvelle["categorie_id"] == voyages
             assert (nouvelle["hauteur"], nouvelle["largeur"]) == attendu.shape[:2], type
             assert np.array_equal(pixels(nouvelle), attendu), type
@@ -57,11 +67,14 @@ def verifier():
         assert transformer({"type": "echelle", "facteur": 0.5}).json["largeur"] == 20
         assert np.array_equal(pixels(transformer({"type": "rotation", "angle": 180}).json), ORIGINE[::-1, ::-1])
         assert np.array_equal(pixels(transformer({"type": "rotation", "angle": 270}).json), np.rot90(ORIGINE))
-        assert np.array_equal(pixels(transformer({"type": "miroir", "axe": "vertical"}).json), ORIGINE[::-1])
+        # Axe horizontal : le haut et le bas s'échangent
+        retournee = transformer({"type": "miroir", "axe": "horizontal"}).json
+        assert retournee["nom"] == "plage_miroir_H.png" and np.array_equal(pixels(retournee), ORIGINE[::-1])
+        assert transformer({"type": "echelle", "facteur": 1.5}).json["nom"] == "plage_echelle_1.5.png"
 
-        # L'originale est conservée, intacte ; 9 nouvelles images à côté d'elle
+        # L'originale est conservée, intacte ; 10 nouvelles images à côté d'elle
         assert np.array_equal(pixels({"id": origine}), ORIGINE)
-        assert len(amine.get(f"/api/images?categorie_id={voyages}").json) == 10
+        assert len(amine.get(f"/api/images?categorie_id={voyages}").json) == 11
         assert amine.get(f"/api/images/{origine}").json["nom"] == "plage.png"
 
         # Paramètres invalides : 400, et aucune image créée
@@ -78,7 +91,7 @@ def verifier():
             {"type": "miroir", "axe": "diagonal"}, {"type": "miroir"},
         ):
             assert transformer(corps).status_code == 400, corps
-        assert len(amine.get(f"/api/images?categorie_id={voyages}").json) == 10
+        assert len(amine.get(f"/api/images?categorie_id={voyages}").json) == 11
 
         # Image d'un autre utilisateur, ou inexistante : 404
         assert transformer({"type": "gris"}, client=sara).status_code == 404

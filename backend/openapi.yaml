@@ -427,7 +427,7 @@ paths:
         - recadrage : x, y, largeur, hauteur (entiers, zone entièrement dans l'image)
         - echelle : facteur (entre 0,1 et 4)
         - rotation : angle (90, 180 ou 270, sens des aiguilles d'une montre)
-        - miroir : axe (horizontal ou vertical)
+        - miroir : axe autour duquel l'image se retourne (horizontal : haut et bas échangés ; vertical : gauche et droite échangées)
         - gris : aucun paramètre
       parameters:
         - in: path
@@ -468,7 +468,7 @@ paths:
                 enum: [horizontal, vertical]
       responses:
         201:
-          description: Nouvelle image, dans la même catégorie, nommée d'après le type (plage_recadrage.jpg)
+          description: Nouvelle image, dans la même catégorie, nommée d'après le type et son paramètre (plage_miroir_H.jpg, plage_echelle_0.5.jpg)
           schema:
             $ref: "#/definitions/Image"
         400:

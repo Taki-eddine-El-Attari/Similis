@@ -13,7 +13,8 @@ from categories import corps_json, est_entier
 PIXELS_MAX = 40_000_000
 
 ROTATIONS = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
-MIROIRS = {"horizontal": 1, "vertical": 0}  # code attendu par cv2.flip
+# L'axe est la ligne autour de laquelle l'image se retourne. Valeur : le code attendu par cv2.flip.
+MIROIRS = {"horizontal": 0, "vertical": 1}
 
 
 def recadrage(pixels, p):
@@ -49,7 +50,7 @@ def rotation(pixels, p):
 
 
 def miroir(pixels, p):
-    """Retourne l'image : horizontal échange la gauche et la droite, vertical le haut et le bas."""
+    """Retourne l'image autour d'un axe : vertical échange la gauche et la droite, horizontal le haut et le bas."""
     if p.get("axe") not in MIROIRS:
         return None, "L'axe doit valoir « horizontal » ou « vertical »."
     return cv2.flip(pixels, MIROIRS[p["axe"]]), None
@@ -62,6 +63,16 @@ def gris(pixels, p):
 
 # Nom du type reçu dans la requête → fonction qui l'applique.
 TYPES = {"recadrage": recadrage, "echelle": echelle, "rotation": rotation, "miroir": miroir, "gris": gris}
+
+# Ce qui est ajouté au nom de la nouvelle image : le type et son paramètre.
+# Exemples : plage_miroir_H.jpg, plage_echelle_0.5.jpg, plage_rotation_90.jpg, plage_recadrage_200x150.jpg.
+ETIQUETTES = {
+    "recadrage": lambda p: f"recadrage_{p['largeur']}x{p['hauteur']}",
+    "echelle": lambda p: f"echelle_{p['facteur']:g}",  # :g écrit 2 et non 2.0
+    "rotation": lambda p: f"rotation_{p['angle']}",
+    "miroir": lambda p: "miroir_" + p["axe"][0].upper(),  # H ou V
+    "gris": lambda p: "gris",
+}
 
 
 class Transformations(Resource):
@@ -82,8 +93,8 @@ class Transformations(Resource):
         if erreur:
             return {"erreur": erreur}, 400
 
-        # Nom de la nouvelle image : nom d'origine suivi du type, par exemple plage_recadrage.jpg.
+        # Nom de la nouvelle image : nom d'origine (raccourci s'il est très long) suivi de l'étiquette.
         origine = Path(image["nom"])
-        nom = f"{origine.stem}_{type}{origine.suffix}"
+        nom = f"{origine.stem[:80]}_{ETIQUETTES[type](corps)}{origine.suffix}"
         contenu = cv2.imencode(origine.suffix.lower(), resultat)[1].tobytes()
         return images.ajouter(nom, contenu, resultat, image["categorie_id"]), 201

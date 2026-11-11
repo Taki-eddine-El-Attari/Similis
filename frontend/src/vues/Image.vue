@@ -228,11 +228,11 @@ async function transformer(type, parametres) {
           <div class="grid gap-2">
             <span class="text-sm font-medium">Miroir</span>
             <div class="flex flex-wrap gap-2">
-              <Button variant="outline" :disabled="occupe" @click="transformer('miroir', { axe: 'horizontal' })">
+              <Button variant="outline" :disabled="occupe" title="Retourne l'image de haut en bas" @click="transformer('miroir', { axe: 'horizontal' })">
                 <FlipHorizontal2 />
                 Horizontal
               </Button>
-              <Button variant="outline" :disabled="occupe" @click="transformer('miroir', { axe: 'vertical' })">
+              <Button variant="outline" :disabled="occupe" title="Retourne l'image de gauche à droite" @click="transformer('miroir', { axe: 'vertical' })">
                 <FlipVertical2 />
                 Vertical
               </Button>
