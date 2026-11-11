@@ -228,7 +228,7 @@ class Descripteurs(Resource):
         for demandee in demandees:
             if not isinstance(demandee, dict) or not categories.est_entier(demandee.get("id")):
                 return {"erreur": "Chaque image s'écrit {\"source\": \"galerie\", \"id\": 12}."}, 400
-            # Les images GHIM-10K s'ajouteront ici avec leur index, à l'étape 6.
+            # Les images GHIM-10K s'ajouteront ici, lues dans l'index, à l'étape 7.
             if demandee.get("source") != "galerie":
                 return {"erreur": "Source inconnue. Source acceptée : galerie."}, 400
             image = trouver(demandee["id"])
