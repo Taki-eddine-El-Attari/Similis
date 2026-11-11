@@ -22,7 +22,7 @@ COLONNES = "id, categorie_id, nom, largeur, hauteur, cree_le"
 
 
 def dossier():
-    """Dossier des fichiers de l'utilisateur connecté : data/uploads/<nom>_<id>/, par exemple « amine_3 ».
+    """Dossier des fichiers de l'utilisateur connecté : storage/uploads/<nom>_<id>/, par exemple « amine_3 ».
 
     Le nom rend le dossier reconnaissable. Il vient de l'utilisateur : tout caractère autre
     qu'une lettre, un chiffre, « _ » ou « - » est remplacé, pour qu'il ne puisse pas servir

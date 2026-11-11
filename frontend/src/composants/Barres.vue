@@ -66,7 +66,7 @@ onBeforeUnmount(() => graphique?.destroy())
 </script>
 
 <template>
-  <div class="relative h-16">
+  <div class="relative h-24">
     <canvas ref="toile" role="img" :aria-label="description" />
   </div>
 </template>

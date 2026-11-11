@@ -31,7 +31,7 @@ def cle_secrete(donnees):
     return fichier.read_bytes()
 
 
-def creer_app(donnees=DOSSIER.parent / "data"):
+def creer_app(donnees=DOSSIER.parent / "storage"):
     """Crée l'application. « donnees » est le dossier de la base et de la clé."""
     donnees = Path(donnees)
     donnees.mkdir(parents=True, exist_ok=True)

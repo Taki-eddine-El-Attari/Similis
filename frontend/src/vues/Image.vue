@@ -183,7 +183,8 @@ async function transformer(type, parametres) {
       <p v-if="erreur" role="alert" class="text-sm text-destructive">{{ erreur }}</p>
     </Transition>
 
-    <div v-if="image" class="grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
+    <!-- La photo en haut, sur toute la largeur ; les blocs en grille dessous -->
+    <div v-if="image" class="grid gap-6">
       <!-- Aperçu : on trace la zone de recadrage directement sur l'image -->
       <div class="grid justify-items-start gap-2">
         <div
@@ -199,7 +200,7 @@ async function transformer(type, parametres) {
             :width="image.largeur"
             :height="image.hauteur"
             draggable="false"
-            class="block h-auto max-h-[70vh] w-auto max-w-full"
+            class="block h-auto max-h-[55vh] w-auto max-w-full"
           />
           <!-- L'ombre très large assombrit tout ce qui est hors de la zone -->
           <div
@@ -214,22 +215,22 @@ async function transformer(type, parametres) {
       <!-- Colonne de droite : deux onglets -->
       <div class="grid min-w-0 gap-4">
       <Tabs v-model="onglet">
-        <TabsList class="w-full">
+        <TabsList class="w-full sm:w-96">
           <TabsTrigger value="descripteurs">Descripteurs</TabsTrigger>
           <TabsTrigger value="transformations">Transformations</TabsTrigger>
         </TabsList>
       </Tabs>
 
       <!-- Onglet Descripteurs -->
-      <div v-if="onglet === 'descripteurs'" class="grid gap-4">
-        <p v-if="!descripteurs && !erreur" class="text-sm text-muted-foreground">Calcul des descripteurs en cours</p>
+      <div v-if="onglet === 'descripteurs'" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        <p v-if="!descripteurs && !erreur" class="col-span-full text-sm text-muted-foreground">Calcul des descripteurs en cours</p>
         <template v-if="descripteurs">
-          <Card>
+          <Card class="col-span-full">
             <CardHeader>
               <CardTitle>Histogrammes de couleur</CardTitle>
               <CardDescription>Part des pixels par niveau, de 0 (sombre) à 255 (clair), en 32 cases.</CardDescription>
             </CardHeader>
-            <CardContent class="grid gap-3">
+            <CardContent class="grid gap-4 sm:grid-cols-3">
               <div v-for="canal in CANAUX" :key="canal.cle">
                 <span class="text-xs text-muted-foreground">{{ canal.nom }}</span>
                 <Barres
@@ -324,7 +325,7 @@ async function transformer(type, parametres) {
           <CardTitle>Transformations</CardTitle>
           <CardDescription>Chacune crée une nouvelle image. L'originale est conservée.</CardDescription>
         </CardHeader>
-        <CardContent class="grid gap-5">
+        <CardContent class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <div class="grid gap-2">
             <span class="text-sm font-medium">Recadrage</span>
             <p class="text-xs text-muted-foreground">
