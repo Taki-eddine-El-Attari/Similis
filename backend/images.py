@@ -218,26 +218,6 @@ class Zip(Resource):
         return send_file(tampon, mimetype="application/zip", as_attachment=True, download_name="similis.zip")
 
 
-class Descripteurs(Resource):
-    def post(self):
-        """POST /api/descripteurs — descripteurs d'une ou plusieurs images : {images: [{source, id}, ...]}."""
-        demandees = categories.corps_json().get("images")
-        if not isinstance(demandees, list) or not 1 <= len(demandees) <= 100:
-            return {"erreur": "« images » doit être une liste de 1 à 100 images."}, 400
-        reponse = []
-        for demandee in demandees:
-            if not isinstance(demandee, dict) or not categories.est_entier(demandee.get("id")):
-                return {"erreur": "Chaque image s'écrit {\"source\": \"galerie\", \"id\": 12}."}, 400
-            # Les images GHIM-10K s'ajouteront ici, lues dans l'index, à l'étape 7.
-            if demandee.get("source") != "galerie":
-                return {"erreur": "Source inconnue. Source acceptée : galerie."}, 400
-            image = trouver(demandee["id"])
-            if image is None:
-                return {"erreur": f"Image {demandee['id']} introuvable."}, 404
-            reponse.append({"source": "galerie", "id": image["id"], **descripteurs.detailler(vecteur(image))})
-        return reponse
-
-
 class Suppression(Resource):
     def post(self):
         """POST /api/images/suppression — supprime plusieurs images ; renvoie leur nombre."""

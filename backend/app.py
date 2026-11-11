@@ -11,6 +11,7 @@ import auth
 import categories
 import db
 import images
+import recherche
 import transformations
 
 DOSSIER = Path(__file__).parent
@@ -31,14 +32,16 @@ def cle_secrete(donnees):
     return fichier.read_bytes()
 
 
-def creer_app(donnees=DOSSIER.parent / "storage"):
-    """Crée l'application. « donnees » est le dossier de la base et de la clé."""
+def creer_app(donnees=DOSSIER.parent / "storage", ghim=DOSSIER.parent / "data" / "GHIM-10K"):
+    """Crée l'application. « donnees » : dossier de la base, de la clé, des images et de l'index ; « ghim » : dossier de GHIM-10K."""
     donnees = Path(donnees)
     donnees.mkdir(parents=True, exist_ok=True)
 
     app = Flask(__name__)
     app.config["BASE"] = donnees / "similis.db"
     app.config["UPLOADS"] = donnees / "uploads"
+    app.config["INDEX"] = donnees / "index" / "ghim.npz"  # écrit par indexer.py
+    app.config["GHIM"] = Path(ghim)  # images de GHIM-10K, en lecture seule
     app.config["SECRET_KEY"] = cle_secrete(donnees)
     # Taille maximale d'un envoi complet (plusieurs fichiers) ; au-delà : 413.
     app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024
@@ -59,7 +62,10 @@ def creer_app(donnees=DOSSIER.parent / "storage"):
     api.add_resource(images.Image, "/api/images/<int:id>")
     api.add_resource(images.Fichier, "/api/images/<int:id>/fichier")
     api.add_resource(transformations.Transformations, "/api/images/<int:id>/transformations")
-    api.add_resource(images.Descripteurs, "/api/descripteurs")
+    api.add_resource(recherche.Descripteurs, "/api/descripteurs")
+    api.add_resource(recherche.Ghim, "/api/ghim")
+    api.add_resource(recherche.GhimFichier, "/api/ghim/<int:id>/fichier")
+    api.add_resource(recherche.Recherche, "/api/recherche")
     api.add_resource(images.Zip, "/api/images/zip")
     api.add_resource(images.Suppression, "/api/images/suppression")
 

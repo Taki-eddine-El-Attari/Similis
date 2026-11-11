@@ -5,6 +5,7 @@ import Connexion from './vues/Connexion.vue'
 import Galerie from './vues/Galerie.vue'
 import PageImage from './vues/Image.vue'
 import Profil from './vues/Profil.vue'
+import Recherche from './vues/Recherche.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +15,7 @@ const router = createRouter({
     { path: '/galerie', component: Galerie },
     // (\\d+) : l'identifiant doit être un nombre
     { path: '/images/:id(\\d+)', component: PageImage },
+    { path: '/recherche', component: Recherche },
     { path: '/profil', component: Profil },
     { path: '/:inconnu(.*)', redirect: '/galerie' },
   ],

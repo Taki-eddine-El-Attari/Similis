@@ -9,14 +9,16 @@ import BoutonTheme from '@/composants/BoutonTheme.vue'
 import Logo from '@/composants/Logo.vue'
 import Image from '@/components/animate-ui/icons/Image.vue'
 import LogOut from '@/components/animate-ui/icons/LogOut.vue'
+import Search from '@/components/animate-ui/icons/Search.vue'
 import User from '@/components/animate-ui/icons/User.vue'
 import { Button } from '@/components/ui/button'
 
 const router = useRouter()
 
-// Liens de la barre latérale. La recherche s'ajoutera ici à l'étape 7.
+// Liens de la barre latérale.
 const liens = [
   { chemin: '/galerie', texte: 'Galerie', icone: Image },
+  { chemin: '/recherche', texte: 'Recherche', icone: Search },
   { chemin: '/profil', texte: 'Profil', icone: User },
 ]
 

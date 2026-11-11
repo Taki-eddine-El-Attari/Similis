@@ -118,3 +118,26 @@ export function zipImages(ids) {
 export function urlFichier(id, telecharger = false) {
   return `/api/images/${id}/fichier` + (telecharger ? '?telecharger=1' : '')
 }
+
+// --- GHIM-10K et recherche ---
+// Une image est désignée par { source: 'galerie' | 'ghim', id }.
+
+// GET /api/ghim — les 20 catégories de GHIM-10K : nom, nb_images
+export function listerCategoriesGhim() {
+  return appeler('GET', '/ghim')
+}
+
+// GET /api/ghim?categorie=&page= — une page d'images d'une catégorie : { images, page, pages, total }
+export function listerImagesGhim(categorie, page = 1) {
+  return appeler('GET', `/ghim?categorie=${encodeURIComponent(categorie)}&page=${page}`)
+}
+
+// POST /api/recherche — les k images les plus proches de la requête : { requete, resultats }
+export function chercherSimilaires(requete, k) {
+  return appeler('POST', '/recherche', { requete, k })
+}
+
+// Adresse du fichier d'une image, qu'elle vienne de la galerie ou de GHIM-10K
+export function urlImage(image) {
+  return image.source === 'ghim' ? `/api/ghim/${image.id}/fichier` : urlFichier(image.id)
+}

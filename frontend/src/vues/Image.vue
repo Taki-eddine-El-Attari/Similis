@@ -8,6 +8,7 @@ import { ArrowLeft, Contrast, Crop, FlipHorizontal2, FlipVertical2, RotateCw, Sc
 import { lireDescripteurs, lireImage, transformerImage, urlFichier } from '@/api'
 import Barres from '@/composants/Barres.vue'
 import Download from '@/components/animate-ui/icons/Download.vue'
+import Search from '@/components/animate-ui/icons/Search.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -175,6 +176,13 @@ async function transformer(type, parametres) {
         <Button as="a" variant="outline" :href="urlFichier(image.id, true)" :download="image.nom">
           <Download :size="16" />
           Télécharger
+        </Button>
+      </AnimateIcon>
+      <!-- Lance la recherche avec cette image comme requête -->
+      <AnimateIcon v-if="image" animate-on-hover as-child>
+        <Button @click="router.push({ path: '/recherche', query: { source: 'galerie', id: image.id } })">
+          <Search :size="16" />
+          Chercher les images similaires
         </Button>
       </AnimateIcon>
     </header>
