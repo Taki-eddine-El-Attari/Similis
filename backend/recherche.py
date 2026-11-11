@@ -19,6 +19,7 @@ from categories import corps_json, est_entier
 from db import connexion
 
 PAR_PAGE = 60  # images GHIM par page
+K_DEFAUT, K_MAX = 50, 500  # nombre de résultats : par défaut, et au plus
 ABSENT = ({"erreur": "Index de GHIM-10K absent : lancer backend/indexer.py."}, 503)
 
 
@@ -177,9 +178,9 @@ def chercher(affiner):
     if idx is None:
         return ABSENT
     corps = corps_json()
-    k = corps.get("k", 20)
-    if not est_entier(k) or not 5 <= k <= 100:
-        return {"erreur": "k doit être un entier entre 5 et 100."}, 400
+    k = corps.get("k", K_DEFAUT)
+    if not est_entier(k) or not 5 <= k <= K_MAX:
+        return {"erreur": f"k doit être un entier entre 5 et {K_MAX}."}, 400
     designations = [corps.get("requete")]
     if affiner:
         pertinentes = corps.get("pertinentes")

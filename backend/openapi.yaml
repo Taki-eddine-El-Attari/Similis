@@ -715,8 +715,8 @@ paths:
                 $ref: "#/definitions/Designation"
               k:
                 type: integer
-                description: nombre de résultats, de 5 à 100 (20 par défaut)
-                example: 20
+                description: nombre de résultats, de 5 à 500 (50 par défaut)
+                example: 50
       responses:
         200:
           description: Résultats classés par distance croissante
@@ -770,8 +770,8 @@ paths:
                   $ref: "#/definitions/Designation"
               k:
                 type: integer
-                description: nombre de résultats, de 5 à 100 (20 par défaut)
-                example: 20
+                description: nombre de résultats, de 5 à 500 (50 par défaut)
+                example: 50
       responses:
         200:
           description: Les k + 1 images les plus proches de la nouvelle requête, et la part du poids par descripteur

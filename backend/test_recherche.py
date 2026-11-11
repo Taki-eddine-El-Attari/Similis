@@ -114,7 +114,7 @@ def verifier():
         # --- Nombre de résultats ---
         assert len(chercher("ghim", 0, k=100).json["resultats"]) == 14  # toute la base : 12 GHIM + 2 galerie
         assert len(amine.post("/api/recherche", json={"requete": {"source": "ghim", "id": 0}}).json["resultats"]) == 14
-        for k in (4, 101, "20", 7.5, True):
+        for k in (4, 501, "20", 7.5, True):
             assert chercher("ghim", 0, k=k).status_code == 400, k
 
         # --- Requêtes invalides ---

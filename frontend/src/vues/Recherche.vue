@@ -59,9 +59,9 @@ async function ouvrirCategorie(nom, numero = 1) {
 
 // --- État 2 : résultats ---
 
-const k = ref(20) // nombre de résultats demandé
+const k = ref(50) // nombre de résultats demandé
 const resultats = ref(null) // null : recherche en cours ; sinon liste classée, sans l'image requête
-const PAR_PAGE = 40 // au-delà, les résultats sont découpés en pages
+const PAR_PAGE = 50 // au-delà, les résultats sont découpés en pages
 const pageResultats = ref(1)
 const infoRequete = ref(null) // nom et catégorie de l'image requête, renvoyés par l'API
 
@@ -141,7 +141,8 @@ watch(
 
 <template>
   <section class="grid gap-4">
-    <header>
+    <header class="flex flex-wrap items-end gap-x-3 gap-y-2">
+      <div class="mr-auto min-w-0">
       <!-- Lien de retour : vers la page de l'image si la requête vient de la galerie, sinon vers le choix -->
       <nav class="flex items-center gap-x-1.5 text-sm text-muted-foreground" aria-label="Chemin">
         <RouterLink
@@ -157,6 +158,26 @@ watch(
       <h1 class="text-2xl font-semibold tracking-tight">
         {{ requete ? 'Images similaires' : 'Choisir une image requête' }}
       </h1>
+      <p v-if="requete" class="mt-1 text-sm text-muted-foreground" aria-live="polite">
+        <template v-if="resultats">
+          <span class="font-mono">{{ resultats.length }}</span> résultats, du plus proche au plus éloigné,
+          dans GHIM-10K et votre galerie. Cochez les images pertinentes, puis cliquez sur Affiner.
+        </template>
+        <template v-else>Recherche en cours</template>
+      </p>
+      </div>
+      <!-- Itération et bouton Affiner : à droite du titre, toujours au même endroit -->
+      <template v-if="requete">
+        <span class="rounded-full bg-muted px-2.5 py-1.5 text-xs font-medium">
+          Itération <span class="font-mono">{{ iteration }}</span>
+        </span>
+        <Button :disabled="occupe || !resultats" @click="lancer(true)">
+          <RefreshCw />
+          {{ pertinentes.length
+            ? `Affiner avec ${pertinentes.length} image${pertinentes.length > 1 ? 's' : ''}`
+            : 'Affiner' }}
+        </Button>
+      </template>
     </header>
 
     <Transition name="fondu">
@@ -245,7 +266,7 @@ watch(
           <form class="grid gap-2" @submit.prevent="lancer()">
             <Label for="k">Nombre de résultats</Label>
             <div class="flex gap-2">
-              <Input id="k" v-model="k" type="number" min="5" max="100" required class="w-20" />
+              <Input id="k" v-model="k" type="number" min="5" max="500" required class="w-20" />
               <AnimateIcon animate-on-hover as-child>
                 <Button type="submit" :disabled="occupe">
                   <Search :size="16" />
@@ -253,7 +274,7 @@ watch(
                 </Button>
               </AnimateIcon>
             </div>
-            <p class="text-xs text-muted-foreground">De 5 à 100.</p>
+            <p class="text-xs text-muted-foreground">De 5 à 500.</p>
           </form>
           <Button variant="outline" @click="router.push('/recherche')">Changer d'image</Button>
         </CardContent>
@@ -284,24 +305,6 @@ watch(
 
       <!-- Résultats classés par distance croissante -->
       <div class="grid min-w-0 gap-3">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <p class="mr-auto text-sm text-muted-foreground" aria-live="polite">
-            <template v-if="resultats">
-              <span class="font-mono">{{ resultats.length }}</span> résultats, du plus proche au plus éloigné,
-              dans GHIM-10K et votre galerie. Cochez les images pertinentes, puis cliquez sur Affiner.
-            </template>
-            <template v-else>Recherche en cours</template>
-          </p>
-          <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
-            Itération <span class="font-mono">{{ iteration }}</span>
-          </span>
-          <Button :disabled="occupe || !resultats" @click="lancer(true)">
-            <RefreshCw />
-            {{ pertinentes.length
-              ? `Affiner avec ${pertinentes.length} image${pertinentes.length > 1 ? 's' : ''}`
-              : 'Affiner' }}
-          </Button>
-        </div>
 
         <ul v-if="!resultats" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" aria-busy="true">
           <li v-for="n in Math.min(Number(k) || 20, 20)" :key="n" class="squelette aspect-square rounded-lg" />
@@ -353,7 +356,7 @@ watch(
           </li>
         </ul>
 
-        <!-- Pages : seulement au-delà de 40 résultats -->
+        <!-- Pages : seulement au-delà de 50 résultats -->
         <nav v-if="nbPages > 1" class="flex items-center justify-center gap-3 text-sm" aria-label="Pages de résultats">
           <Button variant="outline" :disabled="pageResultats <= 1" @click="pageResultats--">Précédent</Button>
           <span class="text-muted-foreground">
