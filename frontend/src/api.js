@@ -16,7 +16,24 @@ async function appeler(methode, chemin, corps) {
   return donnees
 }
 
-// GET /api/sante — vérifie que l'API répond
-export function sante() {
-  return appeler('GET', '/sante')
+// --- Authentification ---
+
+// POST /api/auth/inscription — crée un compte et ouvre la session
+export function inscription(nom, motDePasse) {
+  return appeler('POST', '/auth/inscription', { nom, mot_de_passe: motDePasse })
+}
+
+// POST /api/auth/connexion — ouvre la session
+export function connexion(nom, motDePasse) {
+  return appeler('POST', '/auth/connexion', { nom, mot_de_passe: motDePasse })
+}
+
+// POST /api/auth/deconnexion — ferme la session
+export function deconnexion() {
+  return appeler('POST', '/auth/deconnexion')
+}
+
+// GET /api/auth/moi — utilisateur connecté (erreur s'il n'y a pas de session)
+export function moi() {
+  return appeler('GET', '/auth/moi')
 }
