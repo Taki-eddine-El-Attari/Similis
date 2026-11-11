@@ -162,7 +162,7 @@ class Descripteurs(Resource):
 
 class Recherche(Resource):
     def post(self):
-        """POST /api/recherche — les k images les plus proches de la requête : {requete: {source, id}, k}."""
+        """POST /api/recherche — la requête puis ses k images les plus proches : {requete: {source, id}, k}."""
         idx = index()
         if idx is None:
             return ABSENT
@@ -184,7 +184,8 @@ class Recherche(Resource):
         d = distances(base, base[position])
         # Tri par distance croissante. À distance égale (copie exacte), la requête passe en premier.
         autre = np.arange(len(base)) != position
-        ordre = np.lexsort((autre, d))[:k]
+        # k + 1 lignes : la requête elle-même, puis les k images demandées.
+        ordre = np.lexsort((autre, d))[:k + 1]
 
         def decrire(i):
             image = decrire_ghim(idx, int(i)) if i < nb_ghim else dans_galerie[i - nb_ghim]

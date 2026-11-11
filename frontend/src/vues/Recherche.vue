@@ -58,15 +58,24 @@ async function ouvrirCategorie(nom, numero = 1) {
 // --- État 2 : résultats ---
 
 const k = ref(20) // nombre de résultats demandé
-const resultats = ref(null) // null : recherche en cours ; sinon liste classée
+const resultats = ref(null) // null : recherche en cours ; sinon liste classée, sans l'image requête
+const PAR_PAGE = 40 // au-delà, les résultats sont découpés en pages
+const pageResultats = ref(1)
 const infoRequete = ref(null) // nom et catégorie de l'image requête, renvoyés par l'API
 
 async function lancer() {
   resultats.value = null
   const reponse = await executer(() => chercherSimilaires(requete.value, Number(k.value)))
   infoRequete.value = reponse?.requete || null
-  resultats.value = reponse?.resultats || []
+  // L'image requête est déjà affichée à gauche : on la retire de la liste (elle y est en premier, distance 0).
+  const estRequete = (image) => image.source === requete.value.source && image.id === requete.value.id
+  resultats.value = (reponse?.resultats || []).filter((image) => !estRequete(image))
+  pageResultats.value = 1
 }
+
+// Résultats de la page affichée, et nombre de pages.
+const nbPages = computed(() => Math.ceil((resultats.value?.length || 0) / PAR_PAGE))
+const visibles = computed(() => resultats.value.slice((pageResultats.value - 1) * PAR_PAGE, pageResultats.value * PAR_PAGE))
 
 // Distance à 4 décimales, écrite à la française : 0,4127.
 function nombre(valeur) {
@@ -218,17 +227,16 @@ watch(
         </ul>
         <ul v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <li
-            v-for="(image, rang) in resultats"
+            v-for="(image, i) in visibles"
             :key="image.source + image.id"
             class="squelette relative aspect-square overflow-hidden rounded-lg border"
           >
             <img :src="urlImage(image)" :alt="image.nom" loading="lazy" class="size-full object-cover" />
-            <!-- Rang ; le premier résultat est toujours l'image requête elle-même (distance 0) -->
+            <!-- Rang dans le classement complet, toutes pages confondues -->
             <span class="absolute top-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
-              {{ rang === 0 ? 'Requête' : rang + 1 }}
+              {{ (pageResultats - 1) * PAR_PAGE + i + 1 }}
             </span>
             <button
-              v-if="rang > 0"
               type="button"
               class="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-md bg-black/40 text-white hover:bg-black/70"
               :aria-label="'Chercher à partir de ' + image.nom"
@@ -249,6 +257,15 @@ watch(
             </span>
           </li>
         </ul>
+
+        <!-- Pages : seulement au-delà de 40 résultats -->
+        <nav v-if="nbPages > 1" class="flex items-center justify-center gap-3 text-sm" aria-label="Pages de résultats">
+          <Button variant="outline" :disabled="pageResultats <= 1" @click="pageResultats--">Précédent</Button>
+          <span class="text-muted-foreground">
+            Page <span class="font-mono">{{ pageResultats }}</span> sur <span class="font-mono">{{ nbPages }}</span>
+          </span>
+          <Button variant="outline" :disabled="pageResultats >= nbPages" @click="pageResultats++">Suivant</Button>
+        </nav>
       </div>
     </div>
   </section>

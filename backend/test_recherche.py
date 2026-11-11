@@ -72,7 +72,7 @@ def verifier():
         assert resultats[0] == {"source": "ghim", "id": 5, "nom": "1.jpg", "categorie": "herbe", "distance": 0}
         assert reponse.json["requete"] == resultats[0]
         assert [r["distance"] for r in resultats] == sorted(r["distance"] for r in resultats)
-        assert len(resultats) == 5
+        assert len(resultats) == 6  # la requête, puis k = 5 images
         # Les 4 premières sont les 4 images vertes
         assert {r["categorie"] for r in resultats[:4]} == {"herbe"}
 

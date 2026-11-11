@@ -698,11 +698,11 @@ paths:
   /recherche:
     post:
       tags: [Recherche]
-      summary: Renvoie les k images les plus proches de la requête
+      summary: Renvoie la requête puis ses k images les plus proches
       description: |
         Les vecteurs sont centrés-réduits avec les statistiques de GHIM-10K.
         Distance (formule 1 du papier) : somme des carrés des écarts, divisée par 141.
-        La requête sort elle-même en premier, avec une distance 0.
+        La requête sort elle-même en premier, avec une distance 0 ; les k images suivent (k + 1 lignes en tout).
       parameters:
         - in: body
           name: corps
