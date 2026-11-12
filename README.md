@@ -40,7 +40,7 @@ This is mini-project 1 of the Multimedia Mining course (group 1). The user inter
 
 ![Image page with its descriptors](screenshots/image.png)
 
-**Search after one FRE iteration**: 6 sunsets were marked relevant. The histograms now carry 94 % of the total weight, and the relevant images move to the top.
+**Search after one FRE iteration**: 6 sunsets were marked relevant. The histograms now carry 90 % of the total weight, and the relevant images move to the top.
 
 ![Search results after relevance feedback](screenshots/recherche.png)
 
