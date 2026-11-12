@@ -31,8 +31,8 @@ async function seDeconnecter() {
 </script>
 
 <template>
-  <!-- Pages publiques (connexion) : pas de barre -->
-  <RouterView v-if="!utilisateur" />
+  <!-- Pages publiques (accueil, connexion) : pas de barre, même avec une session ouverte -->
+  <RouterView v-if="!utilisateur || $route.meta.publique" />
 
   <!-- Petit écran : la barre passe en haut. À partir de md : à gauche, fixe. -->
   <div v-else class="flex min-h-screen flex-col md:flex-row">

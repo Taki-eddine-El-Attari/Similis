@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
 import { ArrowLeft, RefreshCw } from '@lucide/vue'
 import { affinerRecherche, chercherSimilaires, listerCategoriesGhim, listerImagesGhim, urlImage } from '@/api'
+import { DESCRIPTEURS } from '@/descripteurs' // les 5 descripteurs du graphique des poids
 import Check from '@/components/animate-ui/icons/Check.vue'
 import Search from '@/components/animate-ui/icons/Search.vue'
 import { Button } from '@/components/ui/button'
@@ -77,15 +78,6 @@ function designer(texte) {
   const [source, id] = texte.split(':')
   return { source, id: Number(id) }
 }
-
-// Les 5 descripteurs du graphique des poids, avec leur couleur du thème.
-const DESCRIPTEURS = [
-  { cle: 'histogrammes', nom: 'Histogrammes', couleur: 'var(--chart-1)' },
-  { cle: 'moments', nom: 'Moments', couleur: 'var(--chart-2)' },
-  { cle: 'dominantes', nom: 'Dominantes', couleur: 'var(--chart-3)' },
-  { cle: 'glcm', nom: 'GLCM', couleur: 'var(--chart-4)' },
-  { cle: 'lbp', nom: 'LBP', couleur: 'var(--chart-5)' },
-]
 
 // affinage = false : nouvelle recherche simple, on repart de zéro.
 // affinage = true  : retour de pertinence avec les images cochées.

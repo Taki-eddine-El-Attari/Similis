@@ -148,3 +148,16 @@ export function affinerRecherche(requete, pertinentes, k) {
 export function urlImage(image) {
   return image.source === 'ghim' ? `/api/ghim/${image.id}/fichier` : urlFichier(image.id)
 }
+
+// --- Page d'accueil : seuls services de recherche ouverts sans session ---
+
+// GET /api/vitrine — les photos de la démonstration, avec leur vecteur normalisé
+// renvoie { images: [{ n, categorie, vecteur, dominantes }], groupes, exemple, total, evaluation }
+export function lireVitrine() {
+  return appeler('GET', '/vitrine')
+}
+
+// GET /api/vitrine/<n>/fichier — adresse du fichier de la photo numéro n de la vitrine
+export function urlVitrine(n) {
+  return `/api/vitrine/${n}/fichier`
+}

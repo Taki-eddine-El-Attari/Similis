@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { moi } from './api'
 import { utilisateur } from './session'
+import Accueil from './vues/Accueil.vue'
 import Connexion from './vues/Connexion.vue'
 import Galerie from './vues/Galerie.vue'
 import PageImage from './vues/Image.vue'
@@ -10,7 +11,8 @@ import Recherche from './vues/Recherche.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/galerie' },
+    // Pages publiques : visibles sans session, et affichées sans la barre latérale.
+    { path: '/', component: Accueil, meta: { publique: true } },
     { path: '/connexion', component: Connexion, meta: { publique: true } },
     { path: '/galerie', component: Galerie },
     // (\\d+) : l'identifiant doit être un nombre

@@ -6,6 +6,7 @@ import { connexion, inscription } from '@/api'
 import { utilisateur } from '@/session'
 import BoutonTheme from '@/composants/BoutonTheme.vue'
 import Logo from '@/composants/Logo.vue'
+import Mosaique from '@/composants/Mosaique.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,15 +15,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 const route = useRoute()
 const router = useRouter()
 
-const mode = ref('connexion') // 'connexion' | 'inscription'
+// 'connexion' | 'inscription'. La page d'accueil ouvre directement l'inscription : /connexion?mode=inscription
+const mode = ref(route.query.mode === 'inscription' ? 'inscription' : 'connexion')
 const nom = ref('')
 const motDePasse = ref('')
 const erreur = ref('')
 const envoi = ref(false)
-
-// Mosaïque décorative : 36 carreaux, chaque chiffre choisit une teinte ci-dessous.
-const MOTIF = '032410421304103242013410230143204132'
-const TEINTES = ['bg-primary', 'bg-primary-soft', 'bg-border', 'bg-muted', 'bg-card']
 
 async function envoyer() {
   erreur.value = ''
@@ -46,7 +44,9 @@ async function envoyer() {
     <!-- Colonne du formulaire -->
     <div class="flex flex-col bg-card p-6 sm:p-10">
       <div class="flex items-center justify-between">
-        <Logo />
+        <RouterLink to="/" class="rounded-md" aria-label="Similis, retour à l'accueil">
+          <Logo />
+        </RouterLink>
         <BoutonTheme />
       </div>
 
@@ -101,16 +101,8 @@ async function envoyer() {
     </div>
 
     <!-- Colonne décorative, masquée sur petit écran -->
-    <div class="hidden place-items-center border-l p-12 lg:grid" aria-hidden="true">
-      <div class="grid w-full max-w-md grid-cols-6 gap-2">
-        <i
-          v-for="(chiffre, i) in MOTIF"
-          :key="i"
-          class="aspect-square rounded-lg border"
-          :class="TEINTES[chiffre]"
-          :style="chiffre === '0' ? { opacity: 0.35 + ((i * 5) % 7) / 10 } : null"
-        />
-      </div>
+    <div class="hidden place-items-center border-l p-12 lg:grid">
+      <Mosaique class="w-full max-w-md" />
     </div>
   </main>
 </template>
