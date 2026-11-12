@@ -1,5 +1,9 @@
 # Similis
 
+English | [Français](README.fr.md)
+
+![Landing page with the live retrieval demo](screenshots/accueil.png)
+
 Similis is a photo gallery with content-based image retrieval (CBIR). You upload photos and sort them into nested categories. Each photo is described by a 141-value color and texture vector. You then search for similar images across your gallery and the GHIM-10K dataset, and refine the results with **Feature Relevance Estimation (FRE)** relevance feedback.
 
 This is mini-project 1 of the Multimedia Mining course (group 1). The user interface is in French.
@@ -27,6 +31,20 @@ This is mini-project 1 of the Multimedia Mining course (group 1). The user inter
   - The screen shows the iteration number and each descriptor's share of the total weight.
 - **Public landing page** with a live demo. It runs simple search and FRE in the browser on 24 GHIM-10K images.
 - **Swagger** documentation of the API at `http://localhost:5000/apidocs`.
+
+## Screenshots
+
+**Gallery**: nested categories, upload, multi-select actions.
+
+![Gallery](screenshots/galerie.png)
+
+**Image page**: the 5 descriptors of one image (RGB histograms, dominant colors, HSV moments, GLCM, LBP). The Transformations tab is next to it.
+
+![Image page with its descriptors](screenshots/image.png)
+
+**Search after one FRE iteration**: 6 sunsets were marked relevant. The histograms now carry 94 % of the total weight, and the relevant images move to the top.
+
+![Search results after relevance feedback](screenshots/recherche.png)
 
 ## Measured precision
 
@@ -128,6 +146,7 @@ frontend/src/
   vues/               pages: landing, sign in, gallery, image, search, profile
   composants/         small shared components
 paper/                reference paper on reweighting strategies for relevance feedback
+screenshots/          screenshots used in this README
 ```
 
 Generated data stays out of the repository. `data/` holds the downloaded dataset. `storage/` holds everything the application writes: the SQLite database, uploaded images, the index, the evaluation table and the session key.
