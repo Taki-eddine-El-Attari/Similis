@@ -9,7 +9,7 @@ basePath: /api
 tags:
   - name: Système
   - name: Authentification
-    description: Session par cookie. Tous les autres services exigent d'être connecté.
+    description: Session par cookie. Tous les autres services exigent d'être connecté, sauf /sante et la vitrine.
   - name: Catégories
     description: Hiérarchie libre, propre à chaque utilisateur.
   - name: Images
@@ -22,6 +22,8 @@ tags:
     description: Base partagée de 10 000 images, en lecture seule. L'id d'une image est sa position dans l'index.
   - name: Recherche
     description: Recherche par le contenu dans GHIM-10K et la galerie de l'utilisateur.
+  - name: Vitrine
+    description: "Ouverte sans session, pour la démonstration de la page d'accueil : 24 images fixes de GHIM-10K, aucune autre."
 definitions:
   Designation:
     type: object
@@ -854,3 +856,105 @@ paths:
               supprimees:
                 type: integer
                 example: 2
+  /vitrine:
+    get:
+      tags: [Vitrine]
+      summary: Images et descripteurs de la démonstration de la page d'accueil
+      description: |
+        Public : aucune session n'est demandée.
+        24 images de GHIM-10K (4 catégories de 6), toujours les mêmes et dans le même ordre.
+        Chaque image porte son vecteur normalisé : le navigateur refait lui-même la recherche
+        et le retour de pertinence (frontend/src/fre.js).
+      responses:
+        200:
+          description: La vitrine
+          schema:
+            type: object
+            properties:
+              images:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    n:
+                      type: integer
+                      description: numéro de l'image dans la vitrine, de 0 à 23
+                      example: 0
+                    categorie:
+                      type: string
+                      example: sunset
+                    vecteur:
+                      type: array
+                      description: les 141 valeurs normalisées, arrondies à 4 décimales
+                      items:
+                        type: number
+                    dominantes:
+                      type: array
+                      description: 5 couleurs (k-means), de la plus présente à la moins présente
+                      items:
+                        type: object
+                        properties:
+                          r:
+                            type: number
+                            example: 0.12
+                          g:
+                            type: number
+                            example: 0.45
+                          b:
+                            type: number
+                            example: 0.8
+                          proportion:
+                            type: number
+                            example: 0.37
+              groupes:
+                type: object
+                description: "place de chaque descripteur dans le vecteur : [début, fin["
+                example:
+                  histogrammes: [0, 96]
+                  moments: [96, 105]
+                  dominantes: [105, 125]
+                  glcm: [125, 131]
+                  lbp: [131, 141]
+              exemple:
+                type: integer
+                description: numéro de l'image que la démonstration choisit d'elle-même
+                example: 20
+              total:
+                type: integer
+                description: nombre d'images dans l'index
+                example: 10000
+              evaluation:
+                type: array
+                description: "précision moyenne par itération, mesurée par backend/evaluer.py (liste vide s'il n'a pas été lancé)"
+                items:
+                  type: number
+                example: [0.3108, 0.4436, 0.4804]
+        503:
+          description: Index absent (lancer backend/indexer.py)
+          schema:
+            $ref: "#/definitions/Erreur"
+  /vitrine/{n}/fichier:
+    get:
+      tags: [Vitrine]
+      summary: Renvoie le fichier d'une image de la vitrine
+      description: Public. Seules les 24 images de la vitrine sont servies.
+      produces: [image/jpeg]
+      parameters:
+        - in: path
+          name: n
+          type: integer
+          required: true
+          description: numéro de l'image dans la vitrine, de 0 à 23
+      responses:
+        200:
+          description: Le fichier
+          schema:
+            type: file
+        404:
+          description: Numéro hors de la vitrine
+          schema:
+            $ref: "#/definitions/Erreur"
+        503:
+          description: Index absent (lancer backend/indexer.py)
+          schema:
+            $ref: "#/definitions/Erreur"

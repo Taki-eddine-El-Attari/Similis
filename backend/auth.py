@@ -9,7 +9,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from db import connexion
 
 # Seuls services accessibles sans session.
-CHEMINS_PUBLICS = {"/api/auth/inscription", "/api/auth/connexion", "/api/sante"}
+CHEMINS_PUBLICS = {"/api/auth/inscription", "/api/auth/connexion", "/api/sante", "/api/vitrine"}
+# La vitrine de la page d'accueil sert aussi ses 24 fichiers : /api/vitrine/<n>/fichier.
+PREFIXE_PUBLIC = "/api/vitrine/"
 
 
 def exiger_session():
@@ -18,7 +20,8 @@ def exiger_session():
     La protection est faite ici, une seule fois, pour qu'un nouveau service
     soit protégé par défaut. L'utilisateur connecté est rangé dans g.utilisateur.
     """
-    if not request.path.startswith("/api/") or request.path in CHEMINS_PUBLICS:
+    public = request.path in CHEMINS_PUBLICS or request.path.startswith(PREFIXE_PUBLIC)
+    if not request.path.startswith("/api/") or public:
         return None
     g.utilisateur = connexion().execute(
         "SELECT id, nom FROM utilisateurs WHERE id = ?", (session.get("utilisateur_id"),)

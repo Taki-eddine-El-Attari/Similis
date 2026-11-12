@@ -4,6 +4,7 @@ Une image est désignée partout par {"source": "galerie" | "ghim", "id": entier
 Pour GHIM-10K, l'id est la position de l'image dans l'index (0 à 9 999).
 """
 
+import csv
 from collections import Counter
 from functools import lru_cache
 from math import ceil
@@ -159,6 +160,92 @@ class Descripteurs(Resource):
             vecteur = idx["vecteurs"][id] if source == "ghim" else images.vecteur(images.trouver(id))
             reponse.append({"source": source, "id": id, **descripteurs.detailler(vecteur)})
         return reponse
+
+
+# --- Vitrine publique de la page d'accueil ---
+# Seule partie de la recherche accessible sans session : 24 images fixes de GHIM-10K, pour la
+# démonstration de la page d'accueil. Aucune autre image n'est accessible par ces deux services.
+
+VITRINE = ("sunset", "fireworks", "trees", "sea shores")  # catégories montrées
+PAR_CATEGORIE = 6
+# Graine du tirage et image d'exemple, choisies une fois sur l'index complet. Avec elles, la recherche
+# simple est bonne sans être parfaite (72 % de bonnes photos parmi les 5 premières) et un seul
+# affinage la rend nette (98 %) : la démonstration montre un vrai progrès.
+GRAINE_VITRINE = 1
+EXEMPLE = 20
+
+
+def vitrine(idx):
+    """Positions dans l'index des images de la vitrine : toujours les mêmes, dans le même ordre."""
+    if "vitrine" not in idx:
+        categories = np.array(idx["categories"])
+        presentes = set(idx["categories"])
+        # Sur une autre base que GHIM-10K (les tests), on prend ses premières catégories.
+        noms = [nom for nom in VITRINE if nom in presentes] or sorted(presentes)[:len(VITRINE)]
+        hasard = np.random.default_rng(GRAINE_VITRINE)
+        choisies = []
+        for nom in noms:
+            positions = np.flatnonzero(categories == nom)
+            choisies += hasard.choice(positions, min(PAR_CATEGORIE, len(positions)), replace=False).tolist()
+        # Mélange : la mosaïque de départ ne doit pas être rangée par catégorie.
+        idx["vitrine"] = [choisies[i] for i in hasard.permutation(len(choisies))]
+    return idx["vitrine"]
+
+
+def evaluation():
+    """Précision moyenne à chaque itération, lue dans le tableau écrit par evaluer.py.
+
+    Liste vide si l'évaluation n'a pas été lancée, ou si le tableau est illisible :
+    la page d'accueil s'affiche alors sans ces chiffres.
+    """
+    fichier = Path(current_app.config["EVALUATION"])
+    if not fichier.exists():
+        return []
+    try:
+        with open(fichier, newline="", encoding="utf-8") as tableau:
+            return [float(ligne["precision"]) for ligne in csv.DictReader(tableau)]
+    except (KeyError, TypeError, ValueError):
+        return []
+
+
+class Vitrine(Resource):
+    def get(self):
+        """GET /api/vitrine — public. Les images de la démonstration de l'accueil et leurs descripteurs."""
+        idx = index()
+        if idx is None:
+            return ABSENT
+        positions = vitrine(idx)
+        return {
+            "images": [
+                {
+                    "n": n,
+                    "categorie": idx["categories"][i],
+                    # Vecteur normalisé, arrondi à 4 décimales : le navigateur refait lui-même
+                    # le calcul de la recherche et du retour de pertinence (frontend/src/fre.js).
+                    "vecteur": [round(float(valeur), 4) for valeur in idx["normalises"][i]],
+                    "dominantes": descripteurs.detailler(idx["vecteurs"][i])["dominantes"],
+                }
+                for n, i in enumerate(positions)
+            ],
+            # Place de chaque descripteur dans le vecteur : [début, fin[
+            "groupes": {nom: list(bornes) for nom, bornes in GROUPES.items()},
+            "exemple": min(EXEMPLE, len(positions) - 1),
+            "total": len(idx["chemins"]),
+            # Première valeur : recherche simple ; les suivantes : une itération de retour de pertinence de plus.
+            "evaluation": evaluation(),
+        }
+
+
+class VitrineFichier(Resource):
+    def get(self, n):
+        """GET /api/vitrine/<n>/fichier — public. Le fichier de la n-ième image de la vitrine, d'aucune autre."""
+        idx = index()
+        if idx is None:
+            return ABSENT
+        positions = vitrine(idx)
+        if not 0 <= n < len(positions):
+            return {"erreur": "Image introuvable."}, 404
+        return send_file(Path(current_app.config["GHIM"]) / idx["chemins"][positions[n]], max_age=86400)
 
 
 EPSILON = 0.0001  # ε de la formule 4 : évite une division par zéro quand une composante ne varie pas

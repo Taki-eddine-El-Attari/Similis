@@ -42,6 +42,7 @@ def creer_app(donnees=DOSSIER.parent / "storage", ghim=DOSSIER.parent / "data" /
     app.config["UPLOADS"] = donnees / "uploads"
     app.config["INDEX"] = donnees / "index" / "ghim.npz"  # écrit par indexer.py
     app.config["GHIM"] = Path(ghim)  # images de GHIM-10K, en lecture seule
+    app.config["EVALUATION"] = donnees / "evaluation.csv"  # écrit par evaluer.py
     app.config["SECRET_KEY"] = cle_secrete(donnees)
     # Taille maximale d'un envoi complet (plusieurs fichiers) ; au-delà : 413.
     app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024
@@ -67,6 +68,8 @@ def creer_app(donnees=DOSSIER.parent / "storage", ghim=DOSSIER.parent / "data" /
     api.add_resource(recherche.GhimFichier, "/api/ghim/<int:id>/fichier")
     api.add_resource(recherche.Recherche, "/api/recherche")
     api.add_resource(recherche.Affiner, "/api/recherche/affiner")
+    api.add_resource(recherche.Vitrine, "/api/vitrine")
+    api.add_resource(recherche.VitrineFichier, "/api/vitrine/<int:n>/fichier")
     api.add_resource(images.Zip, "/api/images/zip")
     api.add_resource(images.Suppression, "/api/images/suppression")
 
