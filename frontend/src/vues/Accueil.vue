@@ -304,7 +304,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
                 </ul>
                 <p class="mt-auto pt-5 text-xs text-muted-foreground">
                   Le nom du fichier garde la trace de l'opération&nbsp;:
-                  <span class="font-mono text-foreground">plage_rotation_90.jpg</span>
+                  <span class="font-mono text-foreground">{{ photo.categorie.replace(' ', '_') }}_rotation_90.jpg</span>
                 </p>
               </motion.article>
 
