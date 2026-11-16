@@ -285,7 +285,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
   <MotionConfig reduced-motion="user">
     <div class="flex min-h-screen flex-col">
       <header class="sticky top-0 z-40 bg-background">
-        <div class="mx-auto flex h-14 w-full max-w-[100rem] items-center justify-between px-4 sm:px-6">
+        <div class="mx-auto flex h-14 w-full max-w-[100rem] items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-16">
           <Logo />
           <nav class="flex items-center gap-1" aria-label="Compte">
             <BoutonTheme sans-texte />
@@ -315,7 +315,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
         />
 
         <!-- L'histoire : les chapitres d'un côté, la scène de la photo de l'autre (au-dessus, sur téléphone) -->
-        <div ref="histoire" class="histoire mx-auto w-full max-w-[100rem] sm:px-6" :class="{ calme: !anime }">
+        <div ref="histoire" class="histoire mx-auto w-full max-w-[100rem] sm:px-6 lg:px-10 xl:px-16" :class="{ calme: !anime }">
           <div v-if="anime" ref="scene" class="scene" aria-hidden="true">
             <div class="etabli">
               <!-- Légende de l'étape en cours, en haut de la table -->
@@ -613,7 +613,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
         </div>
 
         <!-- 04 Recherche et retour de pertinence : la démonstration -->
-        <section class="mx-auto w-full max-w-[100rem] px-4 pt-10 sm:px-6 lg:pt-4">
+        <section class="mx-auto w-full max-w-[100rem] px-4 pt-10 sm:px-6 lg:px-10 lg:pt-4 xl:px-16">
           <motion.div v-bind="APPARITIONS[0]" class="grid gap-x-6 gap-y-3 lg:grid-cols-12 lg:items-end">
             <div class="lg:col-span-7">
               <p :class="ETIQUETTE"><span class="text-primary">04</span> · Recherche et retour de pertinence</p>
@@ -651,7 +651,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
         </section>
 
         <!-- 05 Mesure, 06 Plateforme : transformations et galerie -->
-        <section class="mx-auto w-full max-w-[100rem] px-4 pt-20 pb-20 sm:px-6 sm:pt-28">
+        <section class="mx-auto w-full max-w-[100rem] px-4 pt-20 pb-20 sm:px-6 sm:pt-28 lg:px-10 xl:px-16">
           <div class="grid gap-6 lg:grid-cols-12">
             <!-- Mesure : précision moyenne à chaque itération, lue dans le tableau de l'évaluation -->
             <motion.article
@@ -810,7 +810,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
 
       <footer class="border-t">
         <div
-          class="mx-auto flex w-full max-w-[100rem] flex-wrap justify-between gap-x-8 gap-y-1 px-4 py-6 text-sm text-muted-foreground sm:px-6"
+          class="mx-auto flex w-full max-w-[100rem] flex-wrap justify-between gap-x-8 gap-y-1 px-4 py-6 text-sm text-muted-foreground sm:px-6 lg:px-10 xl:px-16"
         >
           <p>Similis, mini-projet de Multimedia Mining, groupe 1.</p>
           <p>Base GHIM-10K. Retour de pertinence&nbsp;: Feature Relevance Estimation.</p>
