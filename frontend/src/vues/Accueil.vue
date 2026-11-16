@@ -388,13 +388,13 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
                 <motion.p v-bind="ENTREES[0]" :class="ETIQUETTE">Recherche d'images par le contenu</motion.p>
                 <motion.h1
                   v-bind="ENTREES[1]"
-                  class="mt-4 text-[clamp(2.25rem,10vw,3rem)] leading-[1.02] font-semibold tracking-[-0.04em] lg:text-[clamp(2.75rem,3.4vw,4rem)] lg:whitespace-nowrap"
+                  class="mt-4 text-[clamp(2.25rem,10vw,3rem)] leading-[1.02] font-semibold tracking-[-0.04em] lg:text-[clamp(3rem,4.2vw,4.75rem)] lg:whitespace-nowrap"
                 >
                   <!-- Le blanc écrit entre les deux lignes sépare les mots dans le texte lu ou copié -->
                   <span class="block">Qui se ressemble</span>{{ ' ' }}
                   <span class="block text-primary">se retrouve.</span>
                 </motion.h1>
-                <motion.p v-bind="ENTREES[2]" class="mt-5 max-w-md text-base text-pretty text-muted-foreground sm:text-lg">
+                <motion.p v-bind="ENTREES[2]" class="mt-5 max-w-lg text-base text-pretty text-muted-foreground sm:text-lg lg:text-xl">
                   Similis décrit chaque photo par 141 valeurs de couleur et de texture, puis retrouve celles qui lui
                   ressemblent.
                 </motion.p>
@@ -424,9 +424,9 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
             <section class="bloc" data-etape>
               <motion.div v-bind="APPARITIONS[0]">
                 <p :class="ETIQUETTE"><span class="text-primary">01</span> · Couleur</p>
-                <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">D'abord, la couleur.</h2>
-                <h3 class="mt-6 text-lg font-semibold tracking-tight">Trois histogrammes</h3>
-                <p class="mt-1 max-w-md text-pretty text-muted-foreground">
+                <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">D'abord, la couleur.</h2>
+                <h3 class="mt-6 text-lg font-semibold tracking-tight lg:text-xl">Trois histogrammes</h3>
+                <p class="mt-1 max-w-lg text-pretty text-muted-foreground lg:text-lg">
                   Chaque pixel tombe dans une case selon son niveau de rouge, de vert et de bleu. {{ CASES }} cases par
                   canal&nbsp;: {{ 3 * CASES }} valeurs.
                 </p>
@@ -468,8 +468,8 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
             <!-- 01 Couleur : dominantes et moments -->
             <section class="bloc" data-etape>
               <motion.div v-bind="APPARITIONS[0]">
-                <h3 class="text-lg font-semibold tracking-tight">Cinq couleurs dominantes</h3>
-                <p class="mt-1 max-w-md text-pretty text-muted-foreground">
+                <h3 class="text-lg font-semibold tracking-tight lg:text-xl">Cinq couleurs dominantes</h3>
+                <p class="mt-1 max-w-lg text-pretty text-muted-foreground lg:text-lg">
                   Les pixels se regroupent en 5 couleurs. Chaque bloc est aussi large que la part de sa couleur dans
                   la photo. Couleurs et parts&nbsp;: 20 valeurs.
                 </p>
@@ -479,7 +479,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
                     {{ partsCouleurs[i] }}
                   </li>
                 </ul>
-                <p class="mt-5 max-w-md text-sm text-pretty text-muted-foreground">
+                <p class="mt-5 max-w-lg text-sm text-pretty text-muted-foreground lg:text-base">
                   S'y ajoutent 9 moments&nbsp;: moyenne, écart-type et asymétrie de la teinte, de la saturation et de
                   la valeur.
                 </p>
@@ -504,8 +504,8 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
             <section class="bloc" data-etape>
               <motion.div v-bind="APPARITIONS[0]">
                 <p :class="ETIQUETTE"><span class="text-primary">02</span> · Texture</p>
-                <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Ensuite, la texture.</h2>
-                <p class="mt-4 max-w-md text-pretty text-muted-foreground">
+                <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">Ensuite, la texture.</h2>
+                <p class="mt-4 max-w-lg text-pretty text-muted-foreground lg:text-lg">
                   La photo passe en niveaux de gris. Une fenêtre de 3 × 3 compare un pixel à ses 8 voisins&nbsp;: 1 si
                   le voisin est au moins aussi clair, 0 sinon. Les 8 réponses forment un motif (LBP).
                 </p>
@@ -582,10 +582,10 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
             <section class="bloc" data-etape>
               <motion.div v-bind="APPARITIONS[0]">
                 <p :class="ETIQUETTE"><span class="text-primary">03</span> · Empreinte</p>
-                <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
                   141 valeurs&nbsp;: l'empreinte.
                 </h2>
-                <p class="mt-4 max-w-md text-pretty text-muted-foreground">
+                <p class="mt-4 max-w-lg text-pretty text-muted-foreground lg:text-lg">
                   Tout se range sur une seule ligne, une barre par valeur. Vers le haut&nbsp;: plus que la moyenne
                   <template v-if="vitrine">des {{ vitrine.total.toLocaleString('fr-FR') }} images</template>
                   de la base. Vers le bas&nbsp;: moins. Une barre est pleine à 3 écarts-types.
@@ -597,7 +597,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
                     <span class="font-mono text-foreground">{{ d.valeurs.length }}</span>
                   </li>
                 </ul>
-                <p class="mt-5 max-w-md text-sm text-pretty text-muted-foreground">
+                <p class="mt-5 max-w-lg text-sm text-pretty text-muted-foreground lg:text-base">
                   C'est ce vecteur que la recherche compare d'une photo à l'autre.
                 </p>
               </motion.div>
@@ -614,12 +614,12 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
 
         <!-- 04 Recherche et retour de pertinence : la démonstration -->
         <section class="mx-auto w-full max-w-[100rem] px-4 pt-10 sm:px-6 lg:pt-4">
-          <motion.div v-bind="APPARITIONS[0]" class="grid gap-x-12 gap-y-3 lg:grid-cols-12 lg:items-end">
+          <motion.div v-bind="APPARITIONS[0]" class="grid gap-x-6 gap-y-3 lg:grid-cols-12 lg:items-end">
             <div class="lg:col-span-7">
               <p :class="ETIQUETTE"><span class="text-primary">04</span> · Recherche et retour de pertinence</p>
-              <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Chercher, cocher, affiner.</h2>
+              <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">Chercher, cocher, affiner.</h2>
             </div>
-            <p class="max-w-md text-pretty text-muted-foreground lg:col-span-5">
+            <p class="max-w-lg text-pretty text-muted-foreground lg:col-span-5 lg:text-lg">
               La photo devient la requête. Les autres sont classées par distance entre empreintes. Cochez celles qui
               conviennent&nbsp;: le retour de pertinence repondère les 141 valeurs.
             </p>
@@ -652,7 +652,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
 
         <!-- 05 Mesure, 06 Plateforme : transformations et galerie -->
         <section class="mx-auto w-full max-w-[100rem] px-4 pt-20 pb-20 sm:px-6 sm:pt-28">
-          <div class="grid gap-4 lg:grid-cols-12">
+          <div class="grid gap-6 lg:grid-cols-12">
             <!-- Mesure : précision moyenne à chaque itération, lue dans le tableau de l'évaluation -->
             <motion.article
               v-if="evaluation.length"
@@ -877,15 +877,17 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
   padding-block: 2rem 4rem;
 }
 
+/* Grand écran : toute la page suit une grille de 12 colonnes, séparées de 1,5 rem.
+   La scène tient les colonnes 7 à 12 ; les chapitres, les colonnes 1 à 6, puis 2 à 6 sur un écran large. */
 @media (min-width: 1024px) {
   .histoire {
     display: grid;
-    grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
-    column-gap: 3rem;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 1.5rem;
   }
   .scene {
     grid-row: 1;
-    grid-column: 2;
+    grid-column: 7 / -1;
     align-self: start;
     height: calc(100svh - 3.5rem);
   }
@@ -898,7 +900,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
       var(--card);
   }
   .repere {
-    width: min(100cqw - 6rem, (100cqh - 7rem) / 0.9);
+    width: min(100cqw - 4rem, 100cqh - 9rem);
   }
   .titre {
     top: 1.1rem;
@@ -907,7 +909,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
   }
   .chapitres {
     grid-row: 1;
-    grid-column: 1;
+    grid-column: 1 / 7;
   }
   .bloc {
     min-height: 100svh;
@@ -916,6 +918,11 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
     min-height: calc(100svh - 3.5rem);
     justify-content: center;
     padding-block: 2.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .chapitres {
+    grid-column: 2 / 7;
   }
 }
 
@@ -933,18 +940,28 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
   max-width: 34rem;
 }
 @media (min-width: 1024px) {
+  /* La même grille de 12 colonnes : le texte à gauche, la figure dans les colonnes 7 à 12. */
   .calme .bloc {
     display: grid;
-    grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     align-items: center;
-    column-gap: 3rem;
+    column-gap: 1.5rem;
     padding-block: 5rem;
+  }
+  .calme .bloc > :first-child {
+    grid-column: 1 / 7;
   }
   .calme .bloc.premier {
     min-height: calc(100svh - 3.5rem);
   }
   .fixe {
+    grid-column: 7 / -1;
     justify-self: center;
+  }
+}
+@media (min-width: 1280px) {
+  .calme .bloc > :first-child {
+    grid-column: 2 / 7;
   }
 }
 
