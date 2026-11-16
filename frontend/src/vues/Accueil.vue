@@ -889,10 +889,18 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
     grid-row: 1;
     grid-column: 7 / -1;
     align-self: start;
+    display: grid;
+    align-items: center; /* la table est centrée dans la hauteur de la fenêtre */
     height: calc(100svh - 3.5rem);
   }
+  /* La table n'occupe plus toute la hauteur : elle garde une forme proche de celle de la photo
+     (hauteur = 92 % de sa largeur), sans jamais dépasser la fenêtre. */
   .etabli {
-    inset: 0.5rem 0 1.5rem;
+    position: relative;
+    inset: auto;
+    width: 100%;
+    aspect-ratio: 1 / 0.92;
+    max-height: calc(100% - 2rem);
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) * 1.8);
     background:
@@ -900,7 +908,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
       var(--card);
   }
   .repere {
-    width: min(100cqw - 4rem, 100cqh - 9rem);
+    width: min(100cqw - 5rem, (100cqh - 7rem) / 0.75);
   }
   .titre {
     top: 1.1rem;

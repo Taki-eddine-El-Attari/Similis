@@ -204,10 +204,13 @@ export function placerParticules(pixels, photo, groupes) {
     const j = choix[i]
     const { x, largeur } = blocs[j]
     const parRang = Math.max(1, Math.round(Math.sqrt((prises[j] * largeur) / HAUT_BANDE)))
-    const etages = Math.ceil(prises[j] / parRang)
+    // Seules les rangées complètes comptent : le bloc est un rectangle net, sans rangée entamée en bas.
+    const etages = Math.max(1, Math.floor(prises[j] / parRang))
     const rang = poses[j]++
+    // Les quelques particules en trop se glissent dans la dernière rangée, sous leurs voisines.
+    const etage = Math.min(Math.floor(rang / parRang), etages - 1)
     dom[i * 3] = x + (((rang % parRang) + 0.5) / parRang) * largeur
-    dom[i * 3 + 1] = HAUT_BANDE / 2 - ((Math.floor(rang / parRang) + 0.5) / etages) * HAUT_BANDE
+    dom[i * 3 + 1] = HAUT_BANDE / 2 - ((etage + 0.5) / etages) * HAUT_BANDE
     dom[i * 3 + 2] = j
   }
 

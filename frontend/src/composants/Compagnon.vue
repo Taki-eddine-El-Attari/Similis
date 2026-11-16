@@ -214,6 +214,7 @@ let particules // Mesh des particules
 let tirage // Mesh du tirage papier
 let boucle // numéro de la prochaine image demandée au navigateur
 let observateur // suit les changements de thème et d'accent
+let guetteur // suit la taille du canevas
 const camera = new Camera() // les shaders font eux-mêmes la projection
 
 const uniformes = {
@@ -292,9 +293,17 @@ function chargerPhoto() {
   uniformes.uDominantes.value.set(photo.dominantes.flatMap((c) => [c.r, c.g, c.b]))
 }
 
+// Taille du canevas à l'écran, en pixels CSS. Ce n'est pas innerWidth : la barre de défilement
+// prend une part de la fenêtre, et un canevas plus large que sa place décalerait tout vers la gauche.
+let large = 1
+let haute = 1
 function dimensionner() {
-  rendu.setSize(innerWidth, innerHeight, false)
-  uniformes.uVue.value = [innerWidth, innerHeight]
+  large = toile.value.clientWidth
+  haute = toile.value.clientHeight
+  rendu.setSize(large, haute, false)
+  uniformes.uVue.value = [large, haute]
+  // Changer la taille vide le canevas : on redessine tout de suite, sans attendre la prochaine image.
+  if (uniformes.uImage.value) rendu.render(scene, camera)
 }
 
 // --- Entrées : le pointeur incline la scène ---
@@ -302,8 +311,8 @@ function dimensionner() {
 const pointeur = [0, 0] // place du pointeur, entre -1 et 1 ; (0, 0) : centre de la fenêtre
 const incl = [0, 0] // inclinaison affichée, qui rejoint celle demandée en douceur
 function suivre(e) {
-  pointeur[0] = (e.clientX / innerWidth) * 2 - 1
-  pointeur[1] = (e.clientY / innerHeight) * 2 - 1
+  pointeur[0] = (e.clientX / large) * 2 - 1
+  pointeur[1] = (e.clientY / haute) * 2 - 1
 }
 
 // --- Une image ---
@@ -343,27 +352,36 @@ function dessiner(maintenant) {
   // Place de la scène et de la case « Requête », lues dans la page.
   if (props.repere) {
     const r = props.repere.getBoundingClientRect()
-    u.uCentre.value = [r.left + r.width / 2 - innerWidth / 2, innerHeight / 2 - (r.top + r.height / 2)]
+    u.uCentre.value = [r.left + r.width / 2 - large / 2, haute / 2 - (r.top + r.height / 2)]
     u.uEchelle.value = r.width
     u.uMarge.value = Math.max(6, r.width * 0.018)
   }
   if (etape > 3.9) {
     const r = document.querySelector('[data-case-requete]')?.getBoundingClientRect()
-    if (r) u.uFin.value = [r.left + r.width / 2 - innerWidth / 2, innerHeight / 2 - (r.top + r.height / 2), r.width, r.height]
+    if (r) u.uFin.value = [r.left + r.width / 2 - large / 2, haute / 2 - (r.top + r.height / 2), r.width, r.height]
   }
 
   // Vie propre : la scène dérive lentement, et s'incline vers le pointeur. Plus calme hors de la photo.
   const [t01, , t23, t34, t45] = u.uT.value
   const entiere = 1 - t01 + t23 * (1 - t34)
-  const ampleur = (0.06 + 0.1 * entiere) * (1 - t45)
+  const ampleur = (0.035 + 0.125 * entiere) * (1 - t45)
   const suivi = 1 - Math.exp(-ecoule / 180)
   incl[0] += (pointeur[1] - incl[0]) * suivi
   incl[1] += (pointeur[0] - incl[1]) * suivi
+  // Hors de la photo, la dérive est plus faible : les blocs et les barres gardent des bords droits.
+  const derive = 0.3 + 0.7 * entiere
   u.uIncl.value = [
-    (incl[0] * ampleur + 0.03 * Math.sin(temps * 0.5)) * (1 - t45),
-    (incl[1] * ampleur + 0.045 * Math.sin(temps * 0.37 + 1)) * (1 - t45),
+    (incl[0] * ampleur + 0.03 * derive * Math.sin(temps * 0.5)) * (1 - t45),
+    (incl[1] * ampleur + 0.045 * derive * Math.sin(temps * 0.37 + 1)) * (1 - t45),
   ]
   u.uCentre.value[1] += Math.sin(temps * 0.6) * 5 * entiere
+  // La perspective grossit le côté le plus proche : inclinée, la scène glisserait vers ce côté.
+  // On la décale d'autant dans l'autre sens, pour qu'elle reste au milieu de sa table.
+  // 1500 : la distance de l'œil, la même que dans le shader (projeter).
+  const glisse = (demi, angle) => (demi ** 2 * Math.sin(angle) * Math.cos(angle)) / 1500
+  const [rx, ry] = u.uIncl.value
+  u.uCentre.value[0] += glisse((u.uPhoto.value[0] * u.uEchelle.value) / 2, ry)
+  u.uCentre.value[1] -= glisse((u.uPhoto.value[1] * u.uEchelle.value) / 2, rx)
   u.uTemps.value = temps
   u.uBalayage.value = ((temps / 5.5) % 1) * 1.5 - 0.25
   // Le tirage papier ne paraît que lorsque presque toutes les particules sont à leur place.
@@ -415,7 +433,9 @@ onMounted(() => {
   lireCouleurs()
   chargerPhoto()
   dimensionner()
-  addEventListener('resize', dimensionner)
+  // Le canevas change de taille avec la fenêtre, et aussi quand la barre de défilement paraît.
+  guetteur = new ResizeObserver(dimensionner)
+  guetteur.observe(toile.value)
   addEventListener('pointermove', suivre, { passive: true })
   observateur = new MutationObserver(lireCouleurs)
   observateur.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-accent'] })
@@ -428,7 +448,7 @@ watch(() => props.pixels, () => rendu && chargerPhoto())
 // La page est quittée : on arrête la boucle et on rend la mémoire de la carte graphique.
 onBeforeUnmount(() => {
   cancelAnimationFrame(boucle)
-  removeEventListener('resize', dimensionner)
+  guetteur?.disconnect()
   removeEventListener('pointermove', suivre)
   observateur?.disconnect()
   if (!rendu) return
