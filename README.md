@@ -4,7 +4,7 @@
 
 Similis is a photo gallery with content-based image retrieval (CBIR). You upload photos and sort them into nested categories. Each photo is described by a 141-value color and texture vector. You then search for similar images across your gallery and the GHIM-10K dataset, and refine the results with **Feature Relevance Estimation (FRE)** relevance feedback.
 
-This is mini-project 1 of the Multimedia Mining course (group 1). The user interface is in French.
+The user interface is in French.
 
 ## Features
 

@@ -812,7 +812,7 @@ const APPARITIONS = [0, 0.08].map((retard) => ({
         <div
           class="mx-auto flex w-full max-w-[100rem] flex-wrap justify-between gap-x-8 gap-y-1 px-4 py-6 text-sm text-muted-foreground sm:px-6 lg:px-10 xl:px-16"
         >
-          <p>Similis, mini-projet de Multimedia Mining, groupe 1.</p>
+          <p>Similis, recherche d'images par le contenu.</p>
           <p>Base GHIM-10K. Retour de pertinence&nbsp;: Feature Relevance Estimation.</p>
         </div>
       </footer>
