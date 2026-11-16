@@ -7,3 +7,13 @@ export const DESCRIPTEURS = [
   { cle: 'glcm', nom: 'GLCM', couleur: 'var(--chart-4)' },
   { cle: 'lbp', nom: 'LBP', couleur: 'var(--chart-5)' },
 ]
+
+// Range un vecteur normalisé par descripteur, pour le dessiner : chaque valeur (un écart à la moyenne
+// de GHIM-10K, en écarts-types) devient une hauteur entre -1 et 1, pleine à 3 écarts-types.
+// groupes : { cle: [début, fin[ } dans le vecteur. Renvoie [{ cle, nom, couleur, valeurs }].
+export function rangerParDescripteur(vecteur, groupes) {
+  return DESCRIPTEURS.map((d) => {
+    const [debut, fin] = groupes[d.cle]
+    return { ...d, valeurs: vecteur.slice(debut, fin).map((v) => Math.max(-1, Math.min(1, v / 3))) }
+  })
+}
