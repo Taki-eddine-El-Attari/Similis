@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { moi } from './api'
 import { utilisateur } from './session'
 import Accueil from './vues/Accueil.vue'
+import AccueilV1 from './archive/accueil-v1/Accueil.vue'
 import Connexion from './vues/Connexion.vue'
 import Galerie from './vues/Galerie.vue'
 import PageImage from './vues/Image.vue'
@@ -13,6 +14,8 @@ const router = createRouter({
   routes: [
     // Pages publiques : visibles sans session, et affichées sans la barre latérale.
     { path: '/', component: Accueil, meta: { publique: true } },
+    // Ancienne page d'accueil, gardée pour comparaison.
+    { path: '/accueil-v1', component: AccueilV1, meta: { publique: true } },
     { path: '/connexion', component: Connexion, meta: { publique: true } },
     { path: '/galerie', component: Galerie },
     // (\\d+) : l'identifiant doit être un nombre
