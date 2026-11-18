@@ -195,7 +195,7 @@ Les données générées ne sont pas dans le dépôt. `data/` contient la base t
 
 Les formules FRE suivent les formules (1), (3), (4) et le tableau 1 de cet article :
 
-Renuka Devi SM, « Reweighing Strategies for Relevance Feedback in CBIR », *International Journal of Advanced Research in Computer and Communication Engineering (IJARCCE)*, vol. 5, n° 11, novembre 2016, p. 549-555. DOI : [10.17148/IJARCCE.2016.511118](https://doi.org/10.17148/IJARCCE.2016.511118)
+Renuka Devi SM, « Reweighing Strategies for Relevance Feedback in CBIR », *International Journal of Advanced Research in Computer and Communication Engineering (IJARCCE)*, vol. 5, n° 11, novembre 2016, p. 549-555. DOI indiqué sur l'article : 10.17148/IJARCCE.2016.511118.
 
 ## Licence
 
