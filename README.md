@@ -186,7 +186,6 @@ frontend/src/
   fre.js              recherche et FRE dans le navigateur, pour la démo de l'accueil
   vues/               pages : accueil, connexion, galerie, image, recherche, profil
   composants/         petits composants partagés
-paper/                article de référence sur la repondération pour le retour de pertinence
 screenshots/          captures d'écran de ce README
 ```
 
@@ -194,7 +193,9 @@ Les données générées ne sont pas dans le dépôt. `data/` contient la base t
 
 ## Référence
 
-Les formules FRE suivent l'article du dossier `paper/`, *Reweighing Strategies for Relevance Feedback in CBIR* : formules (1), (3), (4) et tableau 1.
+Les formules FRE suivent les formules (1), (3), (4) et le tableau 1 de cet article :
+
+Renuka Devi SM, « Reweighing Strategies for Relevance Feedback in CBIR », *International Journal of Advanced Research in Computer and Communication Engineering (IJARCCE)*, vol. 5, n° 11, novembre 2016, p. 549-555. DOI : [10.17148/IJARCCE.2016.511118](https://doi.org/10.17148/IJARCCE.2016.511118)
 
 ## Licence
 
@@ -202,4 +203,4 @@ Copyright (C) 2026 El Attari Taki Eddine, Belkasmi Abderrahmane, Eddiaz Louai.
 
 Le code de Similis est sous licence **GNU GPL v3** (voir le fichier `LICENSE`). Vous pouvez l'utiliser, le modifier et le redistribuer, à condition que tout projet qui reprend ce code soit lui aussi publié sous GPL v3, avec son code source.
 
-La licence ne couvre que notre code. L'article du dossier `paper/` et les images de GHIM-10K restent la propriété de leurs auteurs.
+La licence ne couvre que notre code. L'article de référence et les images de GHIM-10K restent la propriété de leurs auteurs.

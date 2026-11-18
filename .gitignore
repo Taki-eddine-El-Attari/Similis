@@ -6,8 +6,9 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 
-# Internal documents (the reference paper lives in paper/ and is versioned)
+# Internal documents, and the reference paper (third-party copyright, cited in the README)
 docs/
+paper/
 
 # Local tooling
 CLAUDE.md
