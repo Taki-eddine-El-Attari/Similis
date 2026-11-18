@@ -87,8 +87,10 @@ def creer_app(donnees=DOSSIER.parent / "storage", ghim=DOSSIER.parent / "data" /
     def frontend(chemin):
         if chemin.startswith("api/") or not dist.exists():
             abort(404)
+        # assets/ : le nom de chaque fichier change à chaque compilation, le navigateur le garde un an.
+        duree = 365 * 24 * 3600 if chemin.startswith("assets/") else None
         try:
-            return send_from_directory(dist, chemin)
+            return send_from_directory(dist, chemin, max_age=duree)
         except NotFound:
             return send_from_directory(dist, "index.html")  # route de Vue Router (/galerie, /recherche...)
 
