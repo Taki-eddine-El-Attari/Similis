@@ -4,7 +4,7 @@
 
 Similis est une galerie de photos avec une recherche d'images par le contenu (CBIR). On envoie ses photos et on les range dans des catégories, qui peuvent contenir des sous-catégories. Chaque photo est décrite par un vecteur de 141 valeurs, calculé à partir de ses couleurs et de sa texture. On peut ensuite chercher les images qui lui ressemblent, dans sa galerie et dans la base GHIM-10K, puis affiner les résultats avec un retour de pertinence. Nous sommes le **groupe 1**, et la technique de retour de pertinence qui nous a été attribuée est la **Feature Relevance Estimation (FRE)**.
 
-**Démo en ligne** : https://similis.onrender.com (hébergement temporaire, jusqu'à mi-décembre 2026). Le serveur gratuit se met en veille après 15 minutes sans visite : la première page peut donc mettre environ une minute à s'afficher. Les comptes et les photos envoyées sont effacés à chaque redémarrage.
+**Démo en ligne** : https://similis.onrender.com. Le serveur se met en veille après 15 minutes sans visite : la première page peut alors mettre environ une minute à s'afficher.
 
 ## Équipe
 
