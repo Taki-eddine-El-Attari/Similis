@@ -1,0 +1,10 @@
+.git
+.venv
+data
+storage
+docs
+paper
+screenshots
+**/node_modules
+**/dist
+**/__pycache__
