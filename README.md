@@ -6,6 +6,8 @@ Similis is a photo gallery with content-based image retrieval (CBIR). You upload
 
 The user interface is in French.
 
+**Live demo**: https://similis.onrender.com (temporary hosting, until mid-December 2026). The free instance sleeps after 15 minutes without visits, so the first request can take about a minute. Accounts and uploaded photos are erased whenever it restarts.
+
 ## Features
 
 - **Accounts**: sign up, sign in, sign out. Each user only sees their own images.
@@ -64,19 +66,31 @@ Tested with Python 3.13.5 and Node 22.17.0 on Windows 11.
 
 ## Installation
 
-Requirements: Python 3.13 and Node 22.
+Requirements: Git, Python 3.13 and Node 22.
 
 ```bash
+git clone https://github.com/Taki-eddine-El-Attari/Similis.git
+cd Similis
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-npm install --prefix frontend
+npm ci --prefix frontend
 ```
 
-On Linux or macOS, use `.venv/bin/python` instead of `.venv\Scripts\python.exe`.
+The commands in this README are written for Windows. On Linux or macOS, use `.venv/bin/python` instead of `.venv\Scripts\python.exe`, and `/` instead of `\` in paths.
+
+Use `npm ci`, not `npm install`: with npm 10, `npm install --prefix frontend` looks for a `package.json` at the repository root and fails.
 
 ### Dataset
 
-Download GHIM-10K and extract it so that the images are in `data/GHIM-10K/<category>/*.jpg`. The dataset has 20 folders of 500 images. The application only reads this folder.
+GHIM-10K is on Kaggle: https://www.kaggle.com/datasets/guohey/ghim10k (a 1.2 GB zip, free Kaggle account required). Extract it so that the images are in `data/GHIM-10K/<category>/*.jpg`:
+
+```
+data/GHIM-10K/aircraft/10_5001.jpg
+data/GHIM-10K/dragon fly/...
+...
+```
+
+There must be exactly 20 category folders of 500 images directly under `data/GHIM-10K/`. If the zip adds an extra parent folder, move the 20 folders up one level. Keep the folder names as they are: two of them contain a space (`dragon fly`, `sea shores`). The application only reads this folder.
 
 ### Indexing
 
@@ -86,7 +100,7 @@ Compute the descriptors of the 10,000 GHIM-10K images once. This takes about 10 
 .venv\Scripts\python.exe backend\indexer.py
 ```
 
-For a quick test, index only the first N images, for example `backend\indexer.py 100`. The index is written to `storage/index/ghim.npz`. Run it again if `backend/descripteurs.py` changes. Without an index, the search services answer 503.
+For a quick test, index only the first N images, for example `backend\indexer.py 100`. These first images all belong to the first category (aircraft), so every search returns aircraft and the evaluation shows a meaningless 1.0000. Index all 10,000 images for real results. The index is written to `storage/index/ghim.npz`. Run it again if `backend/descripteurs.py` changes. Without an index, the search services answer 503.
 
 ### Evaluation (optional)
 
@@ -109,6 +123,23 @@ npm run dev --prefix frontend
 ```
 
 Open `http://localhost:5173`. Vite forwards `/api` to Flask, so the session cookie works without CORS.
+
+The landing page works without an account. For the gallery and the search, create an account first with the "Créer un compte" button of the landing page (or the "Inscription" tab of the sign-in page).
+
+### Single server
+
+To run everything on port 5000 only, build the frontend once. Flask then serves the built files next to the API:
+
+```bash
+npm run build --prefix frontend
+.venv\Scripts\python.exe backend\app.py
+```
+
+Open `http://localhost:5000`. Rebuild after each frontend change.
+
+### Docker
+
+The `Dockerfile` at the root builds the frontend, installs the backend with gunicorn, and serves everything on `$PORT` (10000 by default). It is the image used for the live demo on Render. It does not use your local `data/` folder: during the build, it downloads an archive holding `data/GHIM-10K/`, `storage/index/ghim.npz` and `storage/evaluation.csv` from the URL in the `DONNEES` build argument, with the token passed as the `HF_TOKEN` build secret.
 
 ## Checks
 
