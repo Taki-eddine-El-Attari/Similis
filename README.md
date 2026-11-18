@@ -1,72 +1,80 @@
 # Similis
 
-![Landing page: the query photo that the scroll breaks down into its descriptors](screenshots/accueil.png)
+![Page d'accueil : la photo requête se décompose en descripteurs pendant le défilement](screenshots/accueil.png)
 
-Similis is a photo gallery with content-based image retrieval (CBIR). You upload photos and sort them into nested categories. Each photo is described by a 141-value color and texture vector. You then search for similar images across your gallery and the GHIM-10K dataset, and refine the results with **Feature Relevance Estimation (FRE)** relevance feedback.
+Similis est une galerie de photos avec une recherche d'images par le contenu (CBIR). On envoie ses photos et on les range dans des catégories, qui peuvent contenir des sous-catégories. Chaque photo est décrite par un vecteur de 141 valeurs, calculé à partir de ses couleurs et de sa texture. On peut ensuite chercher les images qui lui ressemblent, dans sa galerie et dans la base GHIM-10K, puis affiner les résultats avec le retour de pertinence **FRE** (Feature Relevance Estimation).
 
-The user interface is in French.
+**Démo en ligne** : https://similis.onrender.com (hébergement temporaire, jusqu'à mi-décembre 2026). Le serveur gratuit se met en veille après 15 minutes sans visite : la première page peut donc mettre environ une minute à s'afficher. Les comptes et les photos envoyées sont effacés à chaque redémarrage.
 
-**Live demo**: https://similis.onrender.com (temporary hosting, until mid-December 2026). The free instance sleeps after 15 minutes without visits, so the first request can take about a minute. Accounts and uploaded photos are erased whenever it restarts.
+## Équipe
 
-## Features
+Réalisé par :
 
-- **Accounts**: sign up, sign in, sign out. Each user only sees their own images.
-- **Gallery**: upload one or several JPG/PNG images, download one (or several as a ZIP), delete, and move images between categories and sub-categories.
-- **Transformations**: crop (with the mouse), scale, rotate, mirror, grayscale. Each one creates a new image and keeps the original.
-- **Descriptors**, computed by a Flask-RESTful API for one image or a list of images:
+- El Attari Taki Eddine
+- Belkasmi Abderrahmane
+- Eddiaz Louai
 
-  | Family | Descriptor | Values |
+Encadré par : M. Ait Kbir
+
+## Fonctionnalités
+
+- **Comptes** : inscription, connexion, déconnexion. Chaque utilisateur ne voit que ses propres images.
+- **Galerie** : envoyer une ou plusieurs images JPG/PNG, en télécharger une (ou plusieurs dans un ZIP), les supprimer, et les déplacer entre catégories et sous-catégories.
+- **Transformations** : recadrer (à la souris), redimensionner, pivoter, faire un miroir, passer en niveaux de gris. Chaque transformation crée une nouvelle image et garde l'originale.
+- **Descripteurs**, calculés par une API Flask-RESTful pour une image ou une liste d'images :
+
+  | Famille | Descripteur | Valeurs |
   |---|---|---|
-  | Color | R, G, B histograms, 32 bins each | 96 |
-  | Color | Mean, standard deviation, skewness of H, S, V | 9 |
-  | Color | 5 dominant colors (k-means), RGB + share | 20 |
-  | Texture | GLCM: contrast, correlation, energy, homogeneity, dissimilarity, ASM | 6 |
-  | Texture | Uniform LBP (8 neighbors, radius 1) | 10 |
+  | Couleur | Histogrammes R, G, B, 32 cases chacun | 96 |
+  | Couleur | Moyenne, écart-type et asymétrie de H, S, V | 9 |
+  | Couleur | 5 couleurs dominantes (k-means), RGB + part | 20 |
+  | Texture | GLCM : contraste, corrélation, énergie, homogénéité, dissimilarité, ASM | 6 |
+  | Texture | LBP uniforme (8 voisins, rayon 1) | 10 |
 
-- **Simple search**: the query is a gallery image or a GHIM-10K image. Each component is z-normalized with GHIM-10K statistics, and images are ranked by mean squared distance.
-- **FRE relevance feedback**: tick the relevant results, then click "Affiner".
-  - The new query is the mean of the relevant set (the query and every image ticked so far).
-  - Each component gets the weight `w = 1 / (ε + σ)`, with ε = 0.0001.
-  - The weighted distance is `Σ w (x − y)² / Σ w`.
-  - The screen shows the iteration number and each descriptor's share of the total weight.
-- **Public landing page** with a live demo. It runs simple search and FRE in the browser on 24 GHIM-10K images.
-- **Swagger** documentation of the API at `http://localhost:5000/apidocs`.
+- **Recherche simple** : la requête est une image de la galerie ou de GHIM-10K. Chaque valeur est normalisée (z-score) avec les statistiques de GHIM-10K, puis les images sont classées par distance quadratique moyenne.
+- **Retour de pertinence FRE** : on coche les résultats pertinents, puis on clique sur « Affiner ».
+  - La nouvelle requête est la moyenne des images pertinentes (la requête et toutes les images cochées jusqu'ici).
+  - Chaque valeur reçoit le poids `w = 1 / (ε + σ)`, avec ε = 0,0001.
+  - La distance pondérée vaut `Σ w (x − y)² / Σ w`.
+  - L'écran affiche le numéro de l'itération et la part du poids total de chaque descripteur.
+- **Page d'accueil publique** avec une démonstration. Elle fait la recherche simple et FRE directement dans le navigateur, sur 24 images de GHIM-10K.
+- **Documentation Swagger** de l'API sur `http://localhost:5000/apidocs`.
 
-## Screenshots
+## Captures d'écran
 
-**Gallery**: nested categories, upload, multi-select actions.
+**Galerie** : catégories imbriquées, envoi d'images, actions sur plusieurs images à la fois.
 
-![Gallery](screenshots/galerie.png)
+![Galerie](screenshots/galerie.png)
 
-**Image page**: the 5 descriptors of one image (RGB histograms, dominant colors, HSV moments, GLCM, LBP). The Transformations tab is next to it.
+**Page d'une image** : ses 5 descripteurs (histogrammes RGB, couleurs dominantes, moments HSV, GLCM, LBP). L'onglet Transformations est juste à côté.
 
-![Image page with its descriptors](screenshots/image.png)
+![Page d'une image avec ses descripteurs](screenshots/image.png)
 
-**Search after one FRE iteration**: 6 sunsets were marked relevant. The histograms now carry 90 % of the total weight, and the relevant images move to the top.
+**Recherche après une itération FRE** : 6 couchers de soleil ont été marqués pertinents. Les histogrammes portent maintenant 90 % du poids total, et les images pertinentes remontent en tête.
 
-![Search results after relevance feedback](screenshots/recherche.png)
+![Résultats après le retour de pertinence](screenshots/recherche.png)
 
-## Measured precision
+## Précision mesurée
 
-`backend/evaluer.py` simulates relevance feedback on GHIM-10K. It runs 100 queries (5 per category, fixed seed) and keeps the top 25 results. An image counts as relevant when it shares the query's category, and the query itself is not counted.
+`backend/evaluer.py` simule le retour de pertinence sur GHIM-10K. Il lance 100 requêtes (5 par catégorie, tirées avec une graine fixe) et garde les 25 premiers résultats. Une image est jugée pertinente si elle est de la même catégorie que la requête. La requête elle-même n'est pas comptée.
 
-| Iteration | 1 (simple) | 2 | 3 | 4 | 5 | 6 | 7 |
+| Itération | 1 (simple) | 2 | 3 | 4 | 5 | 6 | 7 |
 |---|---|---|---|---|---|---|---|
-| Mean precision | 0.3108 | 0.4436 | 0.4804 | 0.4888 | 0.4920 | 0.4960 | 0.4956 |
+| Précision moyenne | 0,3108 | 0,4436 | 0,4804 | 0,4888 | 0,4920 | 0,4960 | 0,4956 |
 
-## Stack
+## Technologies
 
-| Part | Technology |
+| Partie | Technologies |
 |---|---|
 | Backend | Python 3.13, Flask 3.1, Flask-RESTful, flasgger, SQLite |
-| Image processing | OpenCV, NumPy, scikit-image |
+| Traitement d'images | OpenCV, NumPy, scikit-image |
 | Frontend | Vue 3, Vue Router, Vite, Tailwind CSS 4, shadcn-vue, Motion, Chart.js |
 
-Tested with Python 3.13.5 and Node 22.17.0 on Windows 11.
+Testé avec Python 3.13.5 et Node 22.17.0 sous Windows 11.
 
 ## Installation
 
-Requirements: Git, Python 3.13 and Node 22.
+Il faut avoir Git, Python 3.13 et Node 22.
 
 ```bash
 git clone https://github.com/Taki-eddine-El-Attari/Similis.git
@@ -76,13 +84,13 @@ python -m venv .venv
 npm ci --prefix frontend
 ```
 
-The commands in this README are written for Windows. On Linux or macOS, use `.venv/bin/python` instead of `.venv\Scripts\python.exe`, and `/` instead of `\` in paths.
+Les commandes de ce README sont écrites pour Windows. Sous Linux ou macOS, remplacez `.venv\Scripts\python.exe` par `.venv/bin/python`, et `\` par `/` dans les chemins.
 
-Use `npm ci`, not `npm install`: with npm 10, `npm install --prefix frontend` looks for a `package.json` at the repository root and fails.
+Utilisez bien `npm ci` et pas `npm install` : avec npm 10, `npm install --prefix frontend` cherche un `package.json` à la racine du dépôt et échoue.
 
-### Dataset
+### Base d'images
 
-GHIM-10K is on Kaggle: https://www.kaggle.com/datasets/guohey/ghim10k (a 1.2 GB zip, free Kaggle account required). Extract it so that the images are in `data/GHIM-10K/<category>/*.jpg`:
+GHIM-10K se télécharge sur Kaggle : https://www.kaggle.com/datasets/guohey/ghim10k (un zip de 1,2 Go, il faut un compte Kaggle gratuit). Décompressez-la pour que les images soient dans `data/GHIM-10K/<catégorie>/*.jpg` :
 
 ```
 data/GHIM-10K/aircraft/10_5001.jpg
@@ -90,29 +98,31 @@ data/GHIM-10K/dragon fly/...
 ...
 ```
 
-There must be exactly 20 category folders of 500 images directly under `data/GHIM-10K/`. If the zip adds an extra parent folder, move the 20 folders up one level. Keep the folder names as they are: two of them contain a space (`dragon fly`, `sea shores`). The application only reads this folder.
+Il doit y avoir exactement 20 dossiers de 500 images directement dans `data/GHIM-10K/`. Si le zip ajoute un dossier parent en plus, remontez les 20 dossiers d'un niveau. Ne renommez pas les dossiers : deux d'entre eux contiennent un espace (`dragon fly`, `sea shores`). L'application ne fait que lire ce dossier.
 
-### Indexing
+### Indexation
 
-Compute the descriptors of the 10,000 GHIM-10K images once. This takes about 10 minutes on one core:
+Calculez une seule fois les descripteurs des 10 000 images de GHIM-10K. Ça prend environ 10 minutes sur un cœur :
 
 ```bash
 .venv\Scripts\python.exe backend\indexer.py
 ```
 
-For a quick test, index only the first N images, for example `backend\indexer.py 100`. These first images all belong to the first category (aircraft), so every search returns aircraft and the evaluation shows a meaningless 1.0000. Index all 10,000 images for real results. The index is written to `storage/index/ghim.npz`. Run it again if `backend/descripteurs.py` changes. Without an index, the search services answer 503.
+Pour un essai rapide, on peut n'indexer que les N premières images, par exemple `backend\indexer.py 100`. Attention : ces premières images sont toutes de la même catégorie (aircraft). Toutes les recherches renvoient donc des avions, et l'évaluation affiche un 1,0000 qui ne veut rien dire. Pour de vrais résultats, indexez les 10 000 images.
 
-### Evaluation (optional)
+L'index est écrit dans `storage/index/ghim.npz`. Il faut le refaire si `backend/descripteurs.py` change. Sans index, les services de recherche répondent 503.
+
+### Évaluation (facultatif)
 
 ```bash
 .venv\Scripts\python.exe backend\evaluer.py
 ```
 
-This takes about 5 seconds. It prints the precision of the 7 iterations and writes `storage/evaluation.csv`, which the landing page displays.
+Ça prend environ 5 secondes. Le script affiche la précision des 7 itérations et écrit `storage/evaluation.csv`, que la page d'accueil affiche.
 
-## Running
+## Lancement
 
-Start the backend (port 5000) and the frontend (port 5173) in two terminals:
+Lancez le backend (port 5000) et le frontend (port 5173) dans deux terminaux :
 
 ```bash
 .venv\Scripts\python.exe backend\app.py
@@ -122,64 +132,64 @@ Start the backend (port 5000) and the frontend (port 5173) in two terminals:
 npm run dev --prefix frontend
 ```
 
-Open `http://localhost:5173`. Vite forwards `/api` to Flask, so the session cookie works without CORS.
+Ouvrez `http://localhost:5173`. Vite redirige `/api` vers Flask : le cookie de session marche donc sans CORS.
 
-The landing page works without an account. For the gallery and the search, create an account first with the "Créer un compte" button of the landing page (or the "Inscription" tab of the sign-in page).
+La page d'accueil marche sans compte. Pour la galerie et la recherche, créez d'abord un compte avec le bouton « Créer un compte » de la page d'accueil (ou l'onglet « Inscription » de la page de connexion).
 
-### Single server
+### Avec un seul serveur
 
-To run everything on port 5000 only, build the frontend once. Flask then serves the built files next to the API:
+Pour tout faire tourner sur le port 5000, compilez le frontend une fois. Flask sert alors les fichiers compilés à côté de l'API :
 
 ```bash
 npm run build --prefix frontend
 .venv\Scripts\python.exe backend\app.py
 ```
 
-Open `http://localhost:5000`. Rebuild after each frontend change.
+Ouvrez `http://localhost:5000`. Il faut recompiler après chaque modification du frontend.
 
 ### Docker
 
-The `Dockerfile` at the root builds the frontend, installs the backend with gunicorn, and serves everything on `$PORT` (10000 by default). It is the image used for the live demo on Render. It does not use your local `data/` folder: during the build, it downloads an archive holding `data/GHIM-10K/`, `storage/index/ghim.npz` and `storage/evaluation.csv` from the URL in the `DONNEES` build argument, with the token passed as the `HF_TOKEN` build secret.
+Le `Dockerfile` à la racine compile le frontend, installe le backend avec gunicorn et sert le tout sur le port `$PORT` (10000 par défaut). C'est l'image utilisée pour la démo en ligne sur Render. Elle n'utilise pas votre dossier `data/` local : pendant la construction, elle télécharge une archive qui contient `data/GHIM-10K/`, `storage/index/ghim.npz` et `storage/evaluation.csv`. L'adresse de l'archive est donnée par l'argument `DONNEES`, et le jeton d'accès par le secret `HF_TOKEN`.
 
-## Checks
+## Vérifications
 
-Each computation module has a small runnable check:
+Chaque module de calcul a son petit script de vérification :
 
 ```bash
 .venv\Scripts\python.exe backend\test_descripteurs.py
 ```
 
-The other checks are `test_auth.py`, `test_galerie.py`, `test_transformations.py`, `test_indexer.py`, `test_recherche.py`, `test_affiner.py`, `test_evaluer.py` and `test_vitrine.py` in `backend/`. They work on temporary folders. The in-browser FRE code has its own check:
+Les autres sont `test_auth.py`, `test_galerie.py`, `test_transformations.py`, `test_indexer.py`, `test_recherche.py`, `test_affiner.py`, `test_evaluer.py` et `test_vitrine.py`, dans `backend/`. Ils travaillent dans des dossiers temporaires. Le calcul FRE fait dans le navigateur a aussi sa vérification :
 
 ```bash
 node frontend/test_fre.mjs
 ```
 
-## Project layout
+## Organisation du projet
 
 ```
 backend/
-  app.py              creates the Flask app and declares the routes
-  openapi.yaml        API description shown by Swagger
-  auth.py             accounts and the session check
-  categories.py       category tree
-  images.py           upload, download, delete, descriptors service
-  transformations.py  the 5 transformations
-  descripteurs.py     the 141-value descriptor (no Flask dependency)
-  recherche.py        GHIM-10K index in memory, simple search, FRE, landing page showcase
-  indexer.py          indexes GHIM-10K
-  evaluer.py          measures precision with simulated feedback
+  app.py              crée l'application Flask et déclare les routes
+  openapi.yaml        description de l'API affichée par Swagger
+  auth.py             comptes et contrôle de la session
+  categories.py       arbre des catégories
+  images.py           envoi, téléchargement, suppression, service des descripteurs
+  transformations.py  les 5 transformations
+  descripteurs.py     le descripteur de 141 valeurs (sans Flask)
+  recherche.py        index de GHIM-10K en mémoire, recherche simple, FRE, vitrine de l'accueil
+  indexer.py          indexe GHIM-10K
+  evaluer.py          mesure la précision avec un retour de pertinence simulé
 frontend/src/
-  api.js              every call to the backend
-  fre.js              search and FRE in the browser, for the landing page demo
-  vues/               pages: landing, sign in, gallery, image, search, profile
-  composants/         small shared components
-paper/                reference paper on reweighting strategies for relevance feedback
-screenshots/          screenshots used in this README
+  api.js              tous les appels au backend
+  fre.js              recherche et FRE dans le navigateur, pour la démo de l'accueil
+  vues/               pages : accueil, connexion, galerie, image, recherche, profil
+  composants/         petits composants partagés
+paper/                article de référence sur la repondération pour le retour de pertinence
+screenshots/          captures d'écran de ce README
 ```
 
-Generated data stays out of the repository. `data/` holds the downloaded dataset. `storage/` holds everything the application writes: the SQLite database, uploaded images, the index, the evaluation table and the session key.
+Les données générées ne sont pas dans le dépôt. `data/` contient la base téléchargée. `storage/` contient tout ce que l'application écrit : la base SQLite, les images envoyées, l'index, le tableau d'évaluation et la clé de session.
 
-## Reference
+## Référence
 
-The FRE formulas follow the paper in `paper/`, *Reweighing Strategies for Relevance Feedback in CBIR*: formulas (1), (3), (4) and Table 1.
+Les formules FRE suivent l'article du dossier `paper/`, *Reweighing Strategies for Relevance Feedback in CBIR* : formules (1), (3), (4) et tableau 1.
