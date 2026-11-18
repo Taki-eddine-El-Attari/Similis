@@ -195,3 +195,11 @@ Les données générées ne sont pas dans le dépôt. `data/` contient la base t
 ## Référence
 
 Les formules FRE suivent l'article du dossier `paper/`, *Reweighing Strategies for Relevance Feedback in CBIR* : formules (1), (3), (4) et tableau 1.
+
+## Licence
+
+Copyright (C) 2026 El Attari Taki Eddine, Belkasmi Abderrahmane, Eddiaz Louai.
+
+Le code de Similis est sous licence **GNU GPL v3** (voir le fichier `LICENSE`). Vous pouvez l'utiliser, le modifier et le redistribuer, à condition que tout projet qui reprend ce code soit lui aussi publié sous GPL v3, avec son code source.
+
+La licence ne couvre que notre code. L'article du dossier `paper/` et les images de GHIM-10K restent la propriété de leurs auteurs.
