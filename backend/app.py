@@ -4,8 +4,9 @@ import secrets
 from pathlib import Path
 
 from flasgger import Swagger
-from flask import Flask
+from flask import Flask, abort, send_from_directory
 from flask_restful import Api, Resource
+from werkzeug.exceptions import NotFound
 
 import auth
 import categories
@@ -76,6 +77,21 @@ def creer_app(donnees=DOSSIER.parent / "storage", ghim=DOSSIER.parent / "data" /
     # Documentation interactive des services : http://localhost:5000/apidocs
     # « auth » vide : sans lui, la page de flasgger 0.9.7.1 lève une erreur JavaScript.
     Swagger(app, template_file=str(DOSSIER / "openapi.yaml"), config={"auth": {}}, merge=True)
+
+    # Frontend compilé (npm run build) : servi par Flask, sur la même origine que l'API (cookie de session).
+    # En développement, Vite le sert à la place ; ces routes restent sans effet tant que dist/ n'existe pas.
+    dist = DOSSIER.parent / "frontend" / "dist"
+
+    @app.get("/", defaults={"chemin": ""})
+    @app.get("/<path:chemin>")
+    def frontend(chemin):
+        if chemin.startswith("api/") or not dist.exists():
+            abort(404)
+        try:
+            return send_from_directory(dist, chemin)
+        except NotFound:
+            return send_from_directory(dist, "index.html")  # route de Vue Router (/galerie, /recherche...)
+
     return app
 
 
