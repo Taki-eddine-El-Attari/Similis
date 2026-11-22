@@ -152,7 +152,7 @@ Ouvrez `http://localhost:5000`. Il faut recompiler après chaque modification du
 
 ### Docker
 
-Le `Dockerfile` à la racine compile le frontend, installe le backend avec gunicorn et sert le tout sur le port `$PORT` (10000 par défaut). C'est l'image utilisée pour la démo en ligne sur Render. Elle n'utilise pas votre dossier `data/` local : pendant la construction, elle télécharge une archive qui contient `data/GHIM-10K/`, `storage/index/ghim.npz` et `storage/evaluation.csv`. L'adresse de l'archive est donnée par l'argument `DONNEES`, et le jeton d'accès par le secret `HF_TOKEN`.
+Le `Dockerfile` du [dépôt GitHub](https://github.com/Taki-eddine-El-Attari/Similis) (il n'est pas dans l'archive zip) compile le frontend, installe le backend avec gunicorn et sert le tout sur le port `$PORT` (10000 par défaut). C'est l'image utilisée pour la démo en ligne sur Render. Elle n'utilise pas votre dossier `data/` local : pendant la construction, elle télécharge une archive qui contient `data/GHIM-10K/`, `storage/index/ghim.npz` et `storage/evaluation.csv`. L'adresse de l'archive est donnée par l'argument `DONNEES`, et le jeton d'accès par le secret `HF_TOKEN`.
 
 ## Organisation du projet
 

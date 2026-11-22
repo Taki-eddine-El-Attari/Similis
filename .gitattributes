@@ -1,0 +1,4 @@
+# Fichiers du déploiement Render : gardés sur GitHub, exclus de l'archive zip (git archive).
+Dockerfile export-ignore
+.dockerignore export-ignore
+.gitattributes export-ignore
