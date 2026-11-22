@@ -62,6 +62,24 @@ def supprimer(image):
     (dossier() / image["fichier"]).unlink(missing_ok=True)
 
 
+def decoder(octets):
+    """Décode les octets d'une image. Renvoie (pixels B, G, R sur 8 bits, masque), ou (None, None).
+
+    masque : vrai sur les pixels visibles d'un PNG transparent (une image dont le fond a été supprimé),
+    None pour une image opaque. Les descripteurs ne comptent que les pixels visibles.
+    """
+    octets = np.frombuffer(octets, np.uint8)
+    pixels = cv2.imdecode(octets, cv2.IMREAD_COLOR) if octets.size else None
+    if pixels is None:
+        return None, None
+    # Seul le PNG peut avoir un canal de transparence parmi les formats acceptés.
+    if octets[:4].tobytes() == b"\x89PNG":
+        brut = cv2.imdecode(octets, cv2.IMREAD_UNCHANGED)
+        if brut.ndim == 3 and brut.shape[2] == 4 and brut.shape[:2] == pixels.shape[:2]:
+            return pixels, brut[:, :, 3] > 0
+    return pixels, None
+
+
 def enregistrer(fichier, categorie_id):
     """Vérifie un fichier envoyé et l'enregistre. Renvoie (image, raison du refus)."""
     nom = Path(fichier.filename or "").name[:100]
@@ -72,16 +90,17 @@ def enregistrer(fichier, categorie_id):
     if len(contenu) > TAILLE_MAX:
         return None, "Fichier trop gros (10 Mo maximum)."
     # L'extension ne suffit pas : OpenCV doit réussir à décoder l'image.
-    pixels = cv2.imdecode(np.frombuffer(contenu, np.uint8), cv2.IMREAD_COLOR) if contenu else None
+    pixels, masque = decoder(contenu)
     if pixels is None:
         return None, "Ce fichier n'est pas une image lisible."
-    return ajouter(nom, contenu, pixels, categorie_id), None
+    return ajouter(nom, contenu, pixels, categorie_id, masque), None
 
 
-def ajouter(nom, contenu, pixels, categorie_id):
+def ajouter(nom, contenu, pixels, categorie_id, masque=None):
     """Écrit le fichier d'une image et crée sa ligne en base. Renvoie l'image.
 
-    « contenu » : les octets du fichier ; « pixels » : la même image décodée par OpenCV.
+    « contenu » : les octets du fichier ; « pixels » : la même image décodée par OpenCV ;
+    « masque » : pixels visibles d'une image transparente, seuls comptés par les descripteurs.
     Sert au chargement et aux transformations.
     """
     hauteur, largeur = pixels.shape[:2]
@@ -94,7 +113,7 @@ def ajouter(nom, contenu, pixels, categorie_id):
     curseur = db.execute(
         """INSERT INTO images (utilisateur_id, categorie_id, nom, fichier, largeur, hauteur, descripteurs)
            VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (g.utilisateur["id"], categorie_id, nom, sur_disque, largeur, hauteur, descripteurs.calculer(pixels).tobytes()),
+        (g.utilisateur["id"], categorie_id, nom, sur_disque, largeur, hauteur, descripteurs.calculer(pixels, masque).tobytes()),
     )
     db.commit()
     return publique(trouver(curseur.lastrowid))
@@ -108,8 +127,8 @@ def vecteur(image):
     octets = connexion().execute("SELECT descripteurs FROM images WHERE id = ?", (image["id"],)).fetchone()[0]
     if octets is None:
         # np.fromfile puis imdecode : cv2.imread échoue sous Windows si le chemin contient un accent.
-        pixels = cv2.imdecode(np.fromfile(dossier() / image["fichier"], np.uint8), cv2.IMREAD_COLOR)
-        octets = descripteurs.calculer(pixels).tobytes()
+        pixels, masque = decoder(np.fromfile(dossier() / image["fichier"], np.uint8))
+        octets = descripteurs.calculer(pixels, masque).tobytes()
         connexion().execute("UPDATE images SET descripteurs = ? WHERE id = ?", (octets, image["id"]))
         connexion().commit()
     return np.frombuffer(octets, np.float32)

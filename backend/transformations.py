@@ -60,16 +60,19 @@ def miroir(pixels, p):
 
 
 def gris(pixels, p):
-    """Passe l'image en niveaux de gris, enregistrée sur 3 canaux comme les autres."""
-    return cv2.cvtColor(cv2.cvtColor(pixels, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR), None
+    """Passe l'image en niveaux de gris, enregistrée sur 3 canaux comme les autres (plus la transparence)."""
+    resultat = cv2.cvtColor(cv2.cvtColor(pixels[:, :, :3], cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)
+    return np.dstack([resultat, pixels[:, :, 3:]]), None
 
 
 def fond(pixels, p):
-    """Supprime le fond avec GrabCut et le remplace par du noir.
+    """Supprime le fond avec GrabCut : il devient transparent (image PNG).
 
     L'objet doit être vers le centre : une marge de 5 % sur chaque bord sert d'exemple de fond.
-    La nouvelle image reçoit ses propres descripteurs, calculés sans le fond d'origine.
+    Les descripteurs de la nouvelle image ne comptent que les pixels de l'objet.
     """
+    transparence = pixels[:, :, 3] if pixels.shape[2] == 4 else None
+    pixels = np.ascontiguousarray(pixels[:, :, :3])  # GrabCut ne travaille que sur une image en couleurs
     hauteur, largeur = pixels.shape[:2]
     if min(hauteur, largeur) < 20:
         return None, "L'image est trop petite pour supprimer le fond (20 pixels de côté au minimum)."
@@ -103,7 +106,10 @@ def fond(pixels, p):
     if objet.mean() < 0.01:
         return None, "Aucun objet trouvé vers le centre de l'image : le fond n'a pas pu être séparé."
     objet = cv2.resize(objet, (largeur, hauteur), interpolation=cv2.INTER_NEAREST)  # retour à la taille d'origine
-    return pixels * objet[:, :, None], None
+    if transparence is not None:
+        objet &= transparence > 0  # ce qui était déjà transparent le reste
+    # 4e canal : 255 sur l'objet, 0 sur le fond (transparent). Le fond est aussi mis en noir.
+    return np.dstack([pixels * objet[:, :, None], objet * 255]), None
 
 
 # Nom du type reçu dans la requête → fonction qui l'applique.
@@ -134,14 +140,21 @@ class Transformations(Resource):
             return {"erreur": "Type inconnu. Types acceptés : " + ", ".join(TYPES) + "."}, 400
 
         # np.fromfile puis imdecode : cv2.imread échoue sous Windows si le chemin contient un accent.
-        octets = np.fromfile(images.dossier() / image["fichier"], np.uint8)
-        pixels = cv2.imdecode(octets, cv2.IMREAD_COLOR)
+        pixels, masque = images.decoder(np.fromfile(images.dossier() / image["fichier"], np.uint8))
+        if masque is not None:
+            # Image transparente : la transparence est un 4e canal, transformé avec le reste.
+            pixels = np.dstack([pixels, masque.astype(np.uint8) * 255])
         resultat, erreur = TYPES[type](pixels, corps)
         if erreur:
             return {"erreur": erreur}, 400
 
-        # Nom de la nouvelle image : nom d'origine (raccourci s'il est très long) suivi de l'étiquette.
+        # Une image transparente est enregistrée en PNG (le JPG n'a pas de transparence).
         origine = Path(image["nom"])
-        nom = f"{origine.stem[:80]}_{ETIQUETTES[type](corps)}{origine.suffix}"
-        contenu = cv2.imencode(origine.suffix.lower(), resultat)[1].tobytes()
-        return images.ajouter(nom, contenu, resultat, image["categorie_id"]), 201
+        transparente = resultat.shape[2] == 4
+        extension = ".png" if transparente else origine.suffix
+        # Nom de la nouvelle image : nom d'origine (raccourci s'il est très long) suivi de l'étiquette.
+        nom = f"{origine.stem[:80]}_{ETIQUETTES[type](corps)}{extension}"
+        contenu = cv2.imencode(extension.lower(), resultat)[1].tobytes()
+        masque = resultat[:, :, 3] > 0 if transparente else None
+        couleurs = np.ascontiguousarray(resultat[:, :, :3])
+        return images.ajouter(nom, contenu, couleurs, image["categorie_id"], masque), 201

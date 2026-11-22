@@ -47,15 +47,23 @@ def moments(pixels):
     return np.array(valeurs)
 
 
-def dominantes(pixels):
+def dominantes(pixels, masque=None):
     """20 valeurs : 5 couleurs (R, G, B entre 0 et 1, proportion), de la plus présente à la moins présente."""
     # L'image est d'abord réduite (plus grand côté à 100 pixels) pour que k-means reste rapide.
     hauteur, largeur = pixels.shape[:2]
     rapport = 100 / max(hauteur, largeur)
+    petite, petit_masque = pixels, masque
     if rapport < 1:
-        pixels = cv2.resize(pixels, (max(1, round(largeur * rapport)), max(1, round(hauteur * rapport))),
-                            interpolation=cv2.INTER_AREA)
-    points = pixels.reshape(-1, 3).astype(np.float32)
+        taille = (max(1, round(largeur * rapport)), max(1, round(hauteur * rapport)))
+        petite = cv2.resize(pixels, taille, interpolation=cv2.INTER_AREA)
+        if masque is not None:
+            petit_masque = cv2.resize(masque.astype(np.uint8), taille, interpolation=cv2.INTER_NEAREST) > 0
+    if masque is None:
+        points = petite.reshape(-1, 3)
+    else:
+        # Seulement les pixels de l'objet ; si la réduction les a tous perdus, ceux de l'image d'origine.
+        points = petite[petit_masque] if petit_masque.any() else pixels[masque]
+    points = points.astype(np.float32)
     if len(points) < K:  # image de moins de 5 pixels : on répète ses pixels
         points = np.resize(points, (K, 3))
     # Graine fixée : une même image donne toujours les mêmes couleurs.
@@ -68,27 +76,47 @@ def dominantes(pixels):
     return np.column_stack([rgb, proportions[ordre]]).ravel()
 
 
-def glcm(gris):
+def glcm(gris, masque=None):
     """6 valeurs : contraste, corrélation, énergie, homogénéité, dissimilarité, ASM.
 
     Matrice de cooccurrence sur 256 niveaux, distance 1, directions 0°, 45°, 90° et 135°,
     symétrique et normalisée ; chaque propriété est la moyenne des 4 directions.
     """
     angles = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4]
-    matrice = graycomatrix(gris, distances=[1], angles=angles, levels=256, symmetric=True, normed=True)
+    if masque is None:
+        matrice = graycomatrix(gris, distances=[1], angles=angles, levels=256, symmetric=True, normed=True)
+    else:
+        # Les pixels hors de l'objet reçoivent un 257e niveau (256), puis sa ligne et sa colonne sont
+        # retirées : seules restent les paires de deux pixels de l'objet. graycoprops renormalise la matrice.
+        niveaux = gris.astype(np.uint16)
+        niveaux[~masque] = 256
+        matrice = graycomatrix(niveaux, distances=[1], angles=angles, levels=257, symmetric=True)[:256, :256]
     return np.array([graycoprops(matrice, propriete).mean() for propriete in PROPRIETES_GLCM])
 
 
-def lbp(gris):
+def lbp(gris, masque=None):
     """10 valeurs : histogramme des motifs LBP uniformes (8 voisins, rayon 1), divisé par le nombre de pixels."""
     motifs = local_binary_pattern(gris, P=8, R=1, method="uniform")  # valeurs de 0 à 9
+    if masque is not None:
+        # ponytail: un pixel au bord de l'objet compare aussi ses voisins du fond ; éroder le masque si ça gêne
+        motifs = motifs[masque]
     return np.bincount(motifs.astype(np.int64).ravel(), minlength=10) / motifs.size
 
 
-def calculer(pixels):
-    """Renvoie le vecteur de 141 valeurs (float32) d'une image OpenCV (B, G, R sur 8 bits)."""
+def calculer(pixels, masque=None):
+    """Renvoie le vecteur de 141 valeurs (float32) d'une image OpenCV (B, G, R sur 8 bits).
+
+    masque : tableau booléen de la taille de l'image, vrai sur les pixels à compter (l'objet d'une
+    image dont le fond a été supprimé). None : tous les pixels comptent, comme pour GHIM-10K.
+    """
     gris = cv2.cvtColor(pixels, cv2.COLOR_BGR2GRAY)
-    vecteur = np.concatenate([histogrammes(pixels), moments(pixels), dominantes(pixels), glcm(gris), lbp(gris)])
+    if masque is not None and not masque.any():
+        masque = None  # image entièrement transparente : on compte tout plutôt que rien
+    # Histogrammes et moments n'ont pas besoin de voisins : on leur donne seulement les pixels de l'objet,
+    # rangés sur une ligne. Couleurs dominantes et textures, elles, ont besoin de l'image et du masque.
+    couleurs = pixels if masque is None else pixels[masque][None]
+    vecteur = np.concatenate([histogrammes(couleurs), moments(couleurs), dominantes(pixels, masque),
+                              glcm(gris, masque), lbp(gris, masque)])
     # Une valeur indéfinie (image d'un seul pixel, par exemple) est remplacée par 0.
     return np.nan_to_num(vecteur).astype(np.float32)
 

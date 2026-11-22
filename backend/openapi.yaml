@@ -548,7 +548,7 @@ paths:
         - rotation : angle (90, 180 ou 270, sens des aiguilles d'une montre)
         - miroir : axe autour duquel l'image se retourne (horizontal : haut et bas échangés ; vertical : gauche et droite échangées)
         - gris : aucun paramètre
-        - fond : aucun paramètre ; supprime le fond (GrabCut, objet vers le centre), remplacé par du noir
+        - fond : aucun paramètre ; supprime le fond (GrabCut, objet vers le centre). Le fond devient transparent (image PNG) et n'est pas compté dans les descripteurs
       parameters:
         - in: path
           name: id
