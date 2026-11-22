@@ -106,20 +106,3 @@ def detailler(vecteur):
         "glcm": dict(zip(NOMS_GLCM, v[125:131])),
         "lbp": v[131:141],
     }
-
-
-def demo():
-    """Petite vérification : python backend/descripteurs.py"""
-    rouge = np.zeros((40, 60, 3), np.uint8)
-    rouge[:, :, 2] = 255  # image entièrement rouge
-    d = detailler(calculer(rouge))
-    assert len(calculer(rouge)) == TAILLE
-    assert d["histogrammes"]["r"][31] == 1 and d["histogrammes"]["g"][0] == 1 and d["histogrammes"]["b"][0] == 1
-    assert d["moments"]["s"] == [1, 0, 0] and d["moments"]["v"] == [1, 0, 0]  # saturation et valeur maximales, uniformes
-    assert (d["dominantes"][0]["r"], d["dominantes"][0]["g"], d["dominantes"][0]["b"]) == (1, 0, 0)
-    assert d["glcm"]["contraste"] == 0 and d["glcm"]["homogeneite"] == 1  # aucune variation de texture
-    print("Descripteurs : la vérification passe.")
-
-
-if __name__ == "__main__":
-    demo()

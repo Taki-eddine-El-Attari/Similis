@@ -180,7 +180,7 @@ def vitrine(idx):
     if "vitrine" not in idx:
         categories = np.array(idx["categories"])
         presentes = set(idx["categories"])
-        # Sur une autre base que GHIM-10K (les tests), on prend ses premières catégories.
+        # Index partiel (par exemple indexer.py 100) : on prend ses premières catégories.
         noms = [nom for nom in VITRINE if nom in presentes] or sorted(presentes)[:len(VITRINE)]
         hasard = np.random.default_rng(GRAINE_VITRINE)
         choisies = []

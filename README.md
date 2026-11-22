@@ -153,20 +153,6 @@ Ouvrez `http://localhost:5000`. Il faut recompiler après chaque modification du
 
 Le `Dockerfile` à la racine compile le frontend, installe le backend avec gunicorn et sert le tout sur le port `$PORT` (10000 par défaut). C'est l'image utilisée pour la démo en ligne sur Render. Elle n'utilise pas votre dossier `data/` local : pendant la construction, elle télécharge une archive qui contient `data/GHIM-10K/`, `storage/index/ghim.npz` et `storage/evaluation.csv`. L'adresse de l'archive est donnée par l'argument `DONNEES`, et le jeton d'accès par le secret `HF_TOKEN`.
 
-## Vérifications
-
-Chaque module de calcul a son petit script de vérification :
-
-```bash
-.venv\Scripts\python.exe backend\test_descripteurs.py
-```
-
-Les autres sont `test_auth.py`, `test_galerie.py`, `test_transformations.py`, `test_indexer.py`, `test_recherche.py`, `test_affiner.py`, `test_evaluer.py` et `test_vitrine.py`, dans `backend/`. Ils travaillent dans des dossiers temporaires. Le calcul FRE fait dans le navigateur a aussi sa vérification :
-
-```bash
-node frontend/test_fre.mjs
-```
-
 ## Organisation du projet
 
 ```

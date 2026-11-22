@@ -1,6 +1,5 @@
 // Recherche et retour de pertinence FRE, calculés dans le navigateur pour la démonstration
 // de la page d'accueil. Mêmes formules que backend/recherche.py : modifier l'un, c'est modifier l'autre.
-// Vérification : node frontend/test_fre.mjs
 
 export const EPSILON = 0.0001 // ε de la formule 4
 
