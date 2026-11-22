@@ -414,9 +414,7 @@ async function transformer(type, parametres) {
                 <Eraser />
                 Supprimer le fond
               </Button>
-            </div>
-            <span class="text-xs text-muted-foreground">Le fond devient noir. Les descripteurs de la nouvelle image sont calculés sans lui.</span>
-          </div>
+            </div>          </div>
         </CardContent>
       </Card>
       </div>
