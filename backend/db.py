@@ -27,10 +27,15 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE UNIQUE INDEX IF NOT EXISTS categories_nom_unique
     ON categories (utilisateur_id, IFNULL(parent_id, 0), nom);
 
--- fichier : nom généré sur le disque (UUID + extension). nom : nom affiché.
--- descripteurs : les 141 valeurs en float32, remplies à l'étape 5.
+"""
+
+# fichier : nom généré sur le disque (UUID + extension). nom : nom affiché.
+# descripteurs : les 141 valeurs en float32, remplies à l'étape 5.
+# AUTOINCREMENT : l'id d'une image supprimée n'est jamais redonné. Sans lui, SQLite reprend l'id
+# de la dernière image supprimée, et le navigateur affiche l'ancien fichier gardé pour cette adresse.
+IMAGES = """
 CREATE TABLE IF NOT EXISTS images (
-    id              INTEGER PRIMARY KEY,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     utilisateur_id  INTEGER NOT NULL REFERENCES utilisateurs(id),
     categorie_id    INTEGER REFERENCES categories(id),
     nom             TEXT NOT NULL,
@@ -63,5 +68,15 @@ def initialiser(app):
     """Crée les tables si elles manquent et programme la fermeture automatique."""
     with sqlite3.connect(app.config["BASE"]) as db:
         db.executescript(SCHEMA)
+        ancienne = db.execute("SELECT sql FROM sqlite_master WHERE name = 'images'").fetchone()
+        if ancienne is None:
+            db.executescript(IMAGES)
+        elif "AUTOINCREMENT" not in ancienne[0]:
+            # Base créée avant AUTOINCREMENT : on refait la table en gardant les lignes et leurs id.
+            # Une seule transaction : en cas de panne, la base reste comme avant.
+            db.executescript(
+                "BEGIN; ALTER TABLE images RENAME TO images_ancienne;" + IMAGES
+                + "INSERT INTO images SELECT * FROM images_ancienne; DROP TABLE images_ancienne; COMMIT;"
+            )
     db.close()
     app.teardown_appcontext(fermer)

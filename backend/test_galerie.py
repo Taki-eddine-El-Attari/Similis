@@ -4,6 +4,7 @@ Utilise un dossier temporaire : la vraie base et les vrais fichiers ne sont pas 
 """
 
 import io
+import sqlite3
 import tempfile
 import zipfile
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+import db as db_module
 from app import creer_app
 
 
@@ -134,6 +136,26 @@ def verifier():
         assert list((Path(dossier) / "uploads").rglob("*.*")) == []
         assert amine.get(f"/api/images/{a}/fichier").status_code == 404
         assert amine.delete(f"/api/categories/{voyages}").status_code == 204
+
+        # L'id d'une image supprimée n'est jamais redonné (sinon le navigateur réaffiche l'ancien fichier)
+        nouvelle = envoyer(amine, [("d.jpg", image())]).json["creees"][0]["id"]
+        assert nouvelle > max(a, b, c)
+
+    # Base créée avant AUTOINCREMENT : la table est refaite au démarrage, lignes et id gardés
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as dossier:
+        base = Path(dossier) / "similis.db"
+        with sqlite3.connect(base) as db:
+            db.executescript(db_module.SCHEMA + db_module.IMAGES.replace(" AUTOINCREMENT", ""))
+            db.execute("INSERT INTO utilisateurs (id, nom, mot_de_passe) VALUES (1, 'amine', 'x')")
+            db.execute("INSERT INTO images (id, utilisateur_id, nom, fichier, largeur, hauteur) VALUES (7, 1, 'a.jpg', 'f.jpg', 4, 3)")
+        db.close()
+        creer_app(dossier)
+        with sqlite3.connect(base) as db:
+            assert "AUTOINCREMENT" in db.execute("SELECT sql FROM sqlite_master WHERE name = 'images'").fetchone()[0]
+            assert db.execute("SELECT id, nom FROM images").fetchall() == [(7, "a.jpg")]
+            db.execute("DELETE FROM images")
+            assert db.execute("INSERT INTO images (utilisateur_id, nom, fichier, largeur, hauteur) VALUES (1, 'b.jpg', 'g.jpg', 4, 3)").lastrowid == 8
+        db.close()
 
     print("Galerie : toutes les vérifications passent.")
 
