@@ -4,7 +4,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
-import { ArrowLeft, Contrast, Crop, FlipHorizontal2, FlipVertical2, RotateCw, Scaling } from '@lucide/vue'
+import { ArrowLeft, Contrast, Crop, Eraser, FlipHorizontal2, FlipVertical2, RotateCw, Scaling } from '@lucide/vue'
 import { lireDescripteurs, lireImage, transformerImage, urlFichier } from '@/api'
 import Barres from '@/composants/Barres.vue'
 import Download from '@/components/animate-ui/icons/Download.vue'
@@ -405,6 +405,17 @@ async function transformer(type, parametres) {
                 Niveaux de gris
               </Button>
             </div>
+          </div>
+
+          <div class="grid gap-2">
+            <span class="text-sm font-medium">Fond</span>
+            <div>
+              <Button variant="outline" :disabled="occupe" title="L'objet doit être vers le centre de l'image" @click="transformer('fond')">
+                <Eraser />
+                Supprimer le fond
+              </Button>
+            </div>
+            <span class="text-xs text-muted-foreground">Le fond devient noir. Les descripteurs de la nouvelle image sont calculés sans lui.</span>
           </div>
         </CardContent>
       </Card>

@@ -61,8 +61,33 @@ def gris(pixels, p):
     return cv2.cvtColor(cv2.cvtColor(pixels, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR), None
 
 
+def fond(pixels, p):
+    """Supprime le fond avec GrabCut et le remplace par du noir.
+
+    L'objet doit être vers le centre : une marge de 5 % sur chaque bord sert d'exemple de fond.
+    La nouvelle image reçoit ses propres descripteurs, calculés sans le fond d'origine.
+    """
+    hauteur, largeur = pixels.shape[:2]
+    if min(hauteur, largeur) < 20:
+        return None, "L'image est trop petite pour supprimer le fond (20 pixels de côté au minimum)."
+    # GrabCut est lent sur une grande image : le masque est calculé sur une copie de 400 pixels au plus.
+    reduction = min(1, 400 / max(hauteur, largeur))
+    petite = cv2.resize(pixels, None, fx=reduction, fy=reduction, interpolation=cv2.INTER_AREA)
+    h, l = petite.shape[:2]
+    marge_x, marge_y = max(1, l // 20), max(1, h // 20)
+    rectangle = (marge_x, marge_y, l - 2 * marge_x, h - 2 * marge_y)  # tout ce qui est dehors est du fond
+    masque = np.zeros((h, l), np.uint8)
+    modele_fond, modele_objet = np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64)
+    cv2.grabCut(petite, masque, rectangle, modele_fond, modele_objet, 5, cv2.GC_INIT_WITH_RECT)
+    # On garde l'objet sûr et l'objet probable, puis on remet le masque à la taille d'origine.
+    objet = np.isin(masque, (cv2.GC_FGD, cv2.GC_PR_FGD)).astype(np.uint8)
+    objet = cv2.resize(objet, (largeur, hauteur), interpolation=cv2.INTER_NEAREST)
+    return pixels * objet[:, :, None], None
+
+
 # Nom du type reçu dans la requête → fonction qui l'applique.
-TYPES = {"recadrage": recadrage, "echelle": echelle, "rotation": rotation, "miroir": miroir, "gris": gris}
+TYPES = {"recadrage": recadrage, "echelle": echelle, "rotation": rotation, "miroir": miroir, "gris": gris,
+         "fond": fond}
 
 # Ce qui est ajouté au nom de la nouvelle image : le type et son paramètre.
 # Exemples : plage_miroir_H.jpg, plage_echelle_0.5.jpg, plage_rotation_90.jpg, plage_recadrage_200x150.jpg.
@@ -72,6 +97,7 @@ ETIQUETTES = {
     "rotation": lambda p: f"rotation_{p['angle']}",
     "miroir": lambda p: "miroir_" + p["axe"][0].upper(),  # H ou V
     "gris": lambda p: "gris",
+    "fond": lambda p: "sans_fond",
 }
 
 

@@ -75,6 +75,29 @@ def verifier():
         # L'originale est conservée, intacte ; 10 nouvelles images à côté d'elle
         assert np.array_equal(pixels({"id": origine}), ORIGINE)
         assert len(amine.get(f"/api/images?categorie_id={voyages}").json) == 11
+
+        # Suppression du fond : disque rouge au centre d'un fond gris clair un peu bruité
+        objet = np.full((120, 160, 3), 200, np.uint8)
+        objet += np.random.default_rng(1).integers(0, 20, objet.shape, dtype=np.uint8)
+        cv2.circle(objet, (80, 60), 35, (0, 0, 255), -1)
+        png_objet = cv2.imencode(".png", objet)[1].tobytes()
+        disque = amine.post("/api/images", content_type="multipart/form-data",
+                            data={"fichiers": [(io.BytesIO(png_objet), "disque.png")]}).json["creees"][0]["id"]
+        detouree = transformer({"type": "fond"}, id=disque)
+        assert detouree.status_code == 201, detouree.json
+        assert detouree.json["nom"] == "disque_sans_fond.png"
+        resultat = pixels(detouree.json)
+        assert resultat.shape == objet.shape
+        assert (resultat[:10, :10] == 0).all() and (resultat[50:70, 70:90] == objet[50:70, 70:90]).all()
+        # Le fond (hors du disque) est presque entièrement noir
+        hors_disque = np.ones(objet.shape[:2], np.uint8)
+        cv2.circle(hors_disque, (80, 60), 40, 0, -1)
+        assert (resultat[hors_disque == 1] == 0).all(axis=1).mean() > 0.95
+        # Trop petite : 400
+        petite = cv2.imencode(".png", ORIGINE[:15, :15])[1].tobytes()
+        mini = amine.post("/api/images", content_type="multipart/form-data",
+                          data={"fichiers": [(io.BytesIO(petite), "mini.png")]}).json["creees"][0]["id"]
+        assert transformer({"type": "fond"}, id=mini).status_code == 400
         assert amine.get(f"/api/images/{origine}").json["nom"] == "plage.png"
 
         # Paramètres invalides : 400, et aucune image créée

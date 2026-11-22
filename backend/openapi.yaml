@@ -548,6 +548,7 @@ paths:
         - rotation : angle (90, 180 ou 270, sens des aiguilles d'une montre)
         - miroir : axe autour duquel l'image se retourne (horizontal : haut et bas échangés ; vertical : gauche et droite échangées)
         - gris : aucun paramètre
+        - fond : aucun paramètre ; supprime le fond (GrabCut, objet vers le centre), remplacé par du noir
       parameters:
         - in: path
           name: id
@@ -562,7 +563,7 @@ paths:
             properties:
               type:
                 type: string
-                enum: [recadrage, echelle, rotation, miroir, gris]
+                enum: [recadrage, echelle, rotation, miroir, gris, fond]
                 example: recadrage
               x:
                 type: integer

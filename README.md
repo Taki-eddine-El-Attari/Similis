@@ -22,7 +22,7 @@ Encadré par : M. Ait Kbir
 
 - **Comptes** : inscription, connexion, déconnexion. Chaque utilisateur ne voit que ses propres images.
 - **Galerie** : envoyer une ou plusieurs images JPG/PNG, en télécharger une (ou plusieurs dans un ZIP), les supprimer, et les déplacer entre catégories et sous-catégories.
-- **Transformations** : recadrer (à la souris), redimensionner, pivoter, faire un miroir, passer en niveaux de gris. Chaque transformation crée une nouvelle image et garde l'originale.
+- **Transformations** : recadrer (à la souris), redimensionner, pivoter, faire un miroir, passer en niveaux de gris, supprimer le fond (GrabCut ; le fond devient noir, donc les descripteurs ne portent plus que sur l'objet). Chaque transformation crée une nouvelle image et garde l'originale.
 - **Descripteurs**, calculés par une API Flask-RESTful pour une image ou une liste d'images :
 
   | Famille | Descripteur | Valeurs |
@@ -176,7 +176,7 @@ backend/
   auth.py             comptes et contrôle de la session
   categories.py       arbre des catégories
   images.py           envoi, téléchargement, suppression, service des descripteurs
-  transformations.py  les 5 transformations
+  transformations.py  les 6 transformations
   descripteurs.py     le descripteur de 141 valeurs (sans Flask)
   recherche.py        index de GHIM-10K en mémoire, recherche simple, FRE, vitrine de l'accueil
   indexer.py          indexe GHIM-10K
