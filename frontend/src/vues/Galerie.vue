@@ -3,7 +3,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AnimateIcon } from '@animate-ui/vue/icons'
-import { ChevronRight, FolderPlus, Maximize2 } from '@lucide/vue'
+import { ChevronRight, FolderPlus } from '@lucide/vue'
 import {
   chargerImages, creerCategorie, deplacerImage, listerCategories, listerImages,
   renommerCategorie, supprimerCategorie, supprimerImages, urlFichier, zipImages,
@@ -440,18 +440,13 @@ async function confirmer() {
         :aria-busy="occupe"
       >
         <li v-for="image in images" :key="image.id" class="relative">
-          <!-- Ouvre la page de l'image (aperçu et transformations) ; le reste de la vignette sert à cocher -->
+          <!-- Un clic sur la vignette ouvre la page de l'image ; seule la case en haut à gauche coche -->
           <RouterLink
             :to="'/images/' + image.id"
-            class="absolute top-1.5 right-1.5 z-10 grid size-6 place-items-center rounded-md bg-black/40 text-white hover:bg-black/70"
-            :aria-label="'Ouvrir ' + image.nom"
-            :title="'Ouvrir ' + image.nom"
-          >
-            <Maximize2 class="size-3.5" />
-          </RouterLink>
-          <label
-            class="vignette relative block aspect-square cursor-pointer overflow-hidden rounded-lg border bg-muted outline-2 outline-offset-2 outline-transparent"
+            draggable="false"
+            class="vignette relative block aspect-square overflow-hidden rounded-lg border bg-muted outline-2 outline-offset-2 outline-transparent"
             :class="{ squelette: !chargees.includes(image.id) }"
+            :title="'Ouvrir ' + image.nom"
           >
             <!-- ponytail: la vignette est le fichier complet ; créer des miniatures si la grille devient lente -->
             <!-- Tant que le fichier n'est pas arrivé, l'image est transparente et laisse voir le squelette -->
@@ -465,16 +460,19 @@ async function confirmer() {
               @load="chargees.push(image.id)"
               @error="chargees.push(image.id)"
             />
-            <input v-model="selection" type="checkbox" class="peer sr-only" :value="image.id" :aria-label="'Sélectionner ' + image.nom" />
-            <span
-              class="absolute top-1.5 left-1.5 grid size-5 place-items-center rounded-md border-[1.5px] border-white bg-black/25 text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50"
-              aria-hidden="true"
-            >
-              <Check :size="13" :stroke-width="3" />
-            </span>
             <span class="absolute inset-x-0 bottom-0 flex justify-between gap-2 bg-gradient-to-t from-black/65 px-2 pt-4 pb-1.5 text-[11px] text-white">
               <span class="truncate">{{ image.nom }}</span>
               <span class="shrink-0 font-mono">{{ image.largeur }}×{{ image.hauteur }}</span>
+            </span>
+          </RouterLink>
+          <!-- Case à cocher, posée au-dessus du lien ; zone de clic de 32 px autour de la case -->
+          <label class="absolute top-0 left-0 z-10 grid size-8 cursor-pointer place-items-center" :title="'Sélectionner ' + image.nom">
+            <input v-model="selection" type="checkbox" class="peer sr-only" :value="image.id" :aria-label="'Sélectionner ' + image.nom" />
+            <span
+              class="grid size-5 place-items-center rounded-md border-[1.5px] border-white bg-black/25 text-transparent hover:bg-black/50 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50"
+              aria-hidden="true"
+            >
+              <Check :size="13" :stroke-width="3" />
             </span>
           </label>
         </li>
@@ -550,7 +548,7 @@ async function confirmer() {
 
 <style scoped>
 /* Contour d'accent sur une image cochée (maquette : « vignette cochée »). */
-.vignette:has(:checked) {
+li:has(:checked) > .vignette {
   outline-color: var(--primary);
 }
 
