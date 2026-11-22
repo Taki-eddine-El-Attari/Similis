@@ -23,6 +23,7 @@ Encadré par : M. Ait Kbir
 - **Comptes** : inscription, connexion, déconnexion. Chaque utilisateur ne voit que ses propres images.
 - **Galerie** : envoyer une ou plusieurs images JPG/PNG, en télécharger une (ou plusieurs dans un ZIP), les supprimer, et les déplacer entre catégories et sous-catégories.
 - **Transformations** : recadrer (à la souris), redimensionner, pivoter, faire un miroir, passer en niveaux de gris, supprimer le fond (GrabCut ; le fond devient transparent, dans un PNG, et les descripteurs ne comptent que les pixels de l'objet). Chaque transformation crée une nouvelle image et garde l'originale.
+  - Limite de la suppression du fond : les bords de la photo servent d'exemple de fond, donc l'objet doit être vers le centre. Sur une photo que l'objet remplit jusqu'aux bords (un arbre vu d'en bas, un paysage), la suppression s'arrête avec le message « Aucun objet trouvé vers le centre de l'image ».
 - **Descripteurs**, calculés par une API Flask-RESTful pour une image ou une liste d'images :
 
   | Famille | Descripteur | Valeurs |
