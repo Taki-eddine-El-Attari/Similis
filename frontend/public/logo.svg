@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <!-- Les quatre carreaux du logo (composants/Logo.vue) : 9 px, écart de 2 px, couleur --primary du thème. -->
+  <style>
+    rect { fill: #0F766E; }
+    @media (prefers-color-scheme: dark) { rect { fill: #2DD4BF; } }
+  </style>
+  <rect x="0" y="0" width="9" height="9" rx="3" />
+  <rect x="11" y="0" width="9" height="9" rx="3" opacity="0.55" />
+  <rect x="0" y="11" width="9" height="9" rx="3" opacity="0.3" />
+  <rect x="11" y="11" width="9" height="9" rx="3" opacity="0.8" />
+</svg>
