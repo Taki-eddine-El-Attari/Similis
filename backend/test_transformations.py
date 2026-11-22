@@ -80,6 +80,7 @@ def verifier():
         objet = np.full((120, 160, 3), 200, np.uint8)
         objet += np.random.default_rng(1).integers(0, 20, objet.shape, dtype=np.uint8)
         cv2.circle(objet, (80, 60), 35, (0, 0, 255), -1)
+        cv2.circle(objet, (80, 60), 12, (205, 205, 205), -1)  # trou au centre : du fond entouré par l'objet
         png_objet = cv2.imencode(".png", objet)[1].tobytes()
         disque = amine.post("/api/images", content_type="multipart/form-data",
                             data={"fichiers": [(io.BytesIO(png_objet), "disque.png")]}).json["creees"][0]["id"]
@@ -88,10 +89,13 @@ def verifier():
         assert detouree.json["nom"] == "disque_sans_fond.png"
         resultat = pixels(detouree.json)
         assert resultat.shape == objet.shape
-        assert (resultat[:10, :10] == 0).all() and (resultat[50:70, 70:90] == objet[50:70, 70:90]).all()
+        assert (resultat[:10, :10] == 0).all()
+        assert (resultat[60, 105:110] == objet[60, 105:110]).all()  # l'anneau rouge est gardé
+        assert (resultat[55:65, 75:85] == 0).all()  # le trou, qui ne touche pas le bord, est bien du fond
         # Le fond (hors du disque) est presque entièrement noir
         hors_disque = np.ones(objet.shape[:2], np.uint8)
         cv2.circle(hors_disque, (80, 60), 40, 0, -1)
+        cv2.circle(hors_disque, (80, 60), 8, 1, -1)
         assert (resultat[hors_disque == 1] == 0).all(axis=1).mean() > 0.95
         # Trop petite : 400
         petite = cv2.imencode(".png", ORIGINE[:15, :15])[1].tobytes()

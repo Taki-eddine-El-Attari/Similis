@@ -15,6 +15,9 @@ PIXELS_MAX = 40_000_000
 ROTATIONS = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
 # L'axe est la ligne autour de laquelle l'image se retourne. Valeur : le code attendu par cv2.flip.
 MIROIRS = {"horizontal": 0, "vertical": 1}
+# Suppression du fond : écart de couleur (distance entre deux couleurs BGR, de 0 à 441) en dessous
+# duquel un pixel ressemble au fond. Plus grand : on enlève plus, au risque de mordre sur l'objet.
+SEUIL_FOND = 30
 
 
 def recadrage(pixels, p):
@@ -77,11 +80,29 @@ def fond(pixels, p):
     marge_x, marge_y = max(1, l // 20), max(1, h // 20)
     rectangle = (marge_x, marge_y, l - 2 * marge_x, h - 2 * marge_y)  # tout ce qui est dehors est du fond
     masque = np.zeros((h, l), np.uint8)
-    modele_fond, modele_objet = np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64)
-    cv2.grabCut(petite, masque, rectangle, modele_fond, modele_objet, 5, cv2.GC_INIT_WITH_RECT)
-    # On garde l'objet sûr et l'objet probable, puis on remet le masque à la taille d'origine.
+    # Les deux tableaux de 65 valeurs sont la mémoire de travail de GrabCut (modèles du fond et de l'objet).
+    cv2.grabCut(petite, masque, rectangle, np.zeros((1, 65)), np.zeros((1, 65)), 5, cv2.GC_INIT_WITH_RECT)
+
+    # Seconde passe : un morceau de fond entouré par l'objet (le ciel entre les pales et la cabine
+    # d'un hélicoptère) ne touche pas le bord, et la première passe le garde. On cherche les 5 couleurs
+    # principales de la marge (k-moyennes) ; un pixel gardé proche de l'une d'elles devient « fond probable ».
+    marges = (petite[:marge_y], petite[-marge_y:], petite[:, :marge_x], petite[:, -marge_x:])
+    bord = np.concatenate([m.reshape(-1, 3) for m in marges]).astype(np.float32)
+    critere = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1)
+    _, _, couleurs_fond = cv2.kmeans(bord, 5, None, critere, 3, cv2.KMEANS_PP_CENTERS)
+    ecart = np.linalg.norm(petite[:, :, None].astype(np.float32) - couleurs_fond, axis=3).min(axis=2)
+    seconde = masque.copy()
+    seconde[(seconde == cv2.GC_PR_FGD) & (ecart < SEUIL_FOND)] = cv2.GC_PR_BGD
+    # GrabCut refuse un masque sans aucun pixel d'objet : on garde alors la première passe.
+    if np.isin(seconde, (cv2.GC_FGD, cv2.GC_PR_FGD)).any():
+        masque = seconde
+        cv2.grabCut(petite, masque, None, np.zeros((1, 65)), np.zeros((1, 65)), 5, cv2.GC_INIT_WITH_MASK)
+
+    # On garde l'objet sûr et l'objet probable.
     objet = np.isin(masque, (cv2.GC_FGD, cv2.GC_PR_FGD)).astype(np.uint8)
-    objet = cv2.resize(objet, (largeur, hauteur), interpolation=cv2.INTER_NEAREST)
+    if objet.mean() < 0.01:
+        return None, "Aucun objet trouvé vers le centre de l'image : le fond n'a pas pu être séparé."
+    objet = cv2.resize(objet, (largeur, hauteur), interpolation=cv2.INTER_NEAREST)  # retour à la taille d'origine
     return pixels * objet[:, :, None], None
 
 
